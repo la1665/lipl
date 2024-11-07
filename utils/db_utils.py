@@ -35,6 +35,7 @@ async def create_default_admin(session: AsyncSession):
         await session.refresh(admin_user)
         logger.info("Default admin user created successfully")
         print("Default admin user created successfully.")
+        print(f"Admin: {admin_user.username}")
 
 
     except SQLAlchemyError as error:
