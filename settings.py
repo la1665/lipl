@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int=10
     ALGORITHM: str | Any=None
     ADMIN_USERNAME: str | Any=None
-    ADMIN_PASSWORD: str | Any=None
+    ADMIN_PASSWORD: str
     ADMIN_EMAIL: str | Any=None
     AUTH_TOKEN: Optional[str] = None
     HMAC_SECRET_KEY: Optional[str] = None
