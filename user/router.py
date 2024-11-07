@@ -1,12 +1,13 @@
 import logging
 from typing import List, Optional
-from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File
+from fastapi import APIRouter, HTTPException, status, Depends, UploadFile, File, Form
 from fastapi.responses import JSONResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from minio.error import S3Error
 
 from db.engine import get_db
 from user.crud import UserOperation
+from user.model import UserType
 from user.schema import UserInDB, UserCreate, UserUpdate
 from user.validator import validate_image_size, validate_image_extension, validate_image_content_type
 from auth.access_level import (get_user,
@@ -21,7 +22,19 @@ logger = logging.getLogger(__name__)
 user_router = APIRouter(prefix="/v1")
 
 @user_router.post("/users", status_code=status.HTTP_201_CREATED)
-async def api_create_user(user: UserCreate, profile_image: UploadFile = File(None), db: AsyncSession=Depends(get_db), current_user: UserInDB=Depends(get_admin_user)):
+async def api_create_user(username: str = Form(...),
+    email: str = Form(...),
+    user_type: UserType = Form(...),
+    password: str = Form(...),
+    profile_image: Optional[UploadFile] = File(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_user)):
+    user = UserCreate(
+            username=username,
+            email=email,
+            user_type=user_type,
+            password=password
+        )
     logger.info(f"Create user request for username: {user.username}")
     new_user =  await UserOperation(db).create_user(user, profile_image)
     return new_user
