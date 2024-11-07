@@ -1,0 +1,51 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+    container_name: fastapi_backend
+    restart: always
+    command: [
+        "uvicorn",
+        "main:app_socket",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        # "--ssl-keyfile",
+        # "/app/cert/client.key",
+        # "--ssl-certfile",
+        # "/app/cert/client.crt",
+        # "--ssl-ca-certs",
+        # "/app/cert/ca.crt",
+      ]
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    # environment:
+    # CLIENT_KEY_PATH: ${CLIENT_KEY_PATH}
+    # CLIENT_CERT_PATH: ${CLIENT_CERT_PATH}
+    # CA_CERT_PATH: ${CA_CERT_PATH}
+
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+  # cert_data:
