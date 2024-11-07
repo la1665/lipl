@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str | Any=None
     ACCESS_TOKEN_EXPIRE_MINUTES: int=10
     ALGORITHM: str | Any=None
-    ADMIN_USERNAME: str | Any=None
+    ADMIN_USERNAME: str="1"
     ADMIN_PASSWORD: str="1"
     ADMIN_EMAIL: str | Any=None
     AUTH_TOKEN: Optional[str] = None
