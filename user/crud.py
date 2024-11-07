@@ -30,7 +30,7 @@ class UserOperation:
 
         # Read the file data and upload to MinIO
         file_data = profile_image.file.read()
-        image_url = upload_profile_image(file_data, user.id, profile_image.filename, profile_image.content_type)
+        image_url = upload_profile_image(file_data, user.id, profile_image.filename, profile_image.file, profile_image.content_type)
         user.profile_image = image_url
 
     async def get_all_users(self):
