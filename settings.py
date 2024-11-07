@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str | Any=None
     POSTGRES_DB: str | Any=None
     POSTGRES_HOST: str | Any=None
-    POSTGRES_PORT: int=5432
+    POSTGRES_PORT: int=34748
     SECRET_KEY: str | Any=None
     ACCESS_TOKEN_EXPIRE_MINUTES: int=10
     ALGORITHM: str | Any=None
