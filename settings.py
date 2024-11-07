@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ALGORITHM: str | Any=None
     ADMIN_USERNAME: str="1"
     ADMIN_PASSWORD: str="1"
-    ADMIN_EMAIL: str | Any=None
+    ADMIN_EMAIL: str="amirsazegar16@gmail.com"
     AUTH_TOKEN: Optional[str] = None
     HMAC_SECRET_KEY: Optional[str] = None
     MINIO_ENDPOINT: str
