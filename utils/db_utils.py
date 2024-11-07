@@ -11,6 +11,7 @@ from user.model import DBUser, UserType
 logger = logging.getLogger(__name__)
 
 async def create_default_admin(session: AsyncSession):
+    pass
     logger.info("Checking if default admin user exists")
     result = await session.execute(select(DBUser).filter(DBUser.username == settings.ADMIN_USERNAME))
     admin = result.unique().scalars().first()
