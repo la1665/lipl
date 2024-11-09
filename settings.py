@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     POSTGRES_HOST: str | Any=None
     POSTGRES_PORT: int=34748
     SECRET_KEY: str | Any=None
-    ACCESS_TOKEN_EXPIRE_MINUTES: int=10
+    ACCESS_TOKEN_EXPIRE_MINUTES: int=120
     ALGORITHM: str | Any=None
     ADMIN_USERNAME: str="1"
     ADMIN_PASSWORD: str="1"
