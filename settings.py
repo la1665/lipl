@@ -10,9 +10,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str | Any=None
     ACCESS_TOKEN_EXPIRE_MINUTES: int=120
     ALGORITHM: str | Any=None
-    ADMIN_USERNAME: str="1"
-    ADMIN_PASSWORD: str="1"
-    ADMIN_EMAIL: str="amirsazegar16@gmail.com"
+    ADMIN_USERNAME: str
+    ADMIN_PASSWORD: str
+    ADMIN_EMAIL: str | None = None
     AUTH_TOKEN: Optional[str] = None
     HMAC_SECRET_KEY: Optional[str] = None
     MINIO_ENDPOINT: str
