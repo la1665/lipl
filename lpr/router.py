@@ -34,12 +34,12 @@ async def api_get_building(building_id: int, db: AsyncSession = Depends(get_db),
 
 @building_router.put("/buildings/{building_id}", response_model=BuildingInDB)
 async def api_update_building(building_id: int, building: BuildingUpdate, db:AsyncSession=Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
-    return await BuildingOperation(db).update_building(db, building_id, building)
+    return await BuildingOperation(db).update_building(building_id, building)
 
 
 @building_router.delete("/buildings/{building_id}", response_model=BuildingInDB)
 async def api_delete_building(building_id: int, db:AsyncSession=Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
-    return await BuildingOperation(db).delete_building(db, building_id)
+    return await BuildingOperation(db).delete_building(building_id)
 
 
 # Gate endpoints
