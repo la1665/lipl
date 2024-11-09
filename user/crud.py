@@ -123,7 +123,7 @@ class UserOperation:
             user = await self.get_user(user_id)
             try:
                 if user.profile_image:
-                    old_filename = user.profile_image.split("/")[-1]
+                    old_filename = user.profile_image.split("/")[-1].split("?")[0]
                     delete_profile_image(old_filename)
 
                 await session.delete(user)
