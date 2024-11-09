@@ -1,21 +1,23 @@
+import io
 from minio import S3Error
 
 from minio_db.engine import minio_client
 from settings import settings
 
-def upload_profile_image(file_data, user_id: int, filename: str, file, content_type: str) -> str:
+def upload_profile_image(file_data: bytes, user_id: int, filename: str, content_type: str) -> str:
     """
     Uploads a profile image to MinIO and returns the URL.
     The filename will be formatted as '{user_id}-{original_filename}'.
     """
     unique_filename = f"{user_id}-{filename}"
+    file_length = len(file_data)
     try:
         # Upload file to MinIO
         minio_client.put_object(
             bucket_name=settings.MINIO_BUCKET_NAME,
             object_name=unique_filename,
-            data=file,
-            length=len(file_data),
+            data=io.BytesIO(file_data),
+            length=file_length,
             content_type=content_type  # Adjust based on file type
         )
 
