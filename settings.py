@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     MINIO_ENDPOINT: str
     MINIO_ACCESS_KEY: Optional[str] = None
     MINIO_SECRET_KEY: Optional[str] = None
-    MINIO_USE_SSL: bool=False
+    MINIO_USE_SSL: bool=True
     MINIO_BUCKET_NAME: str
     CLIENT_KEY_PATH: str
     CLIENT_CERT_PATH: str
