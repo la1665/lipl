@@ -63,6 +63,7 @@ class BuildingOperation(CrudOperation):
         async with self.db_session as session:
             db_building = await self.get_building(building_id)
             try:
+                db_building = await session.merge(db_building)
                 for key, value in building.dict(exclude_unset=True).items():
                     setattr(db_building, key, value)
                 await session.commit()
@@ -76,6 +77,7 @@ class BuildingOperation(CrudOperation):
         async with self.db_session as session:
             db_building = await self.get_building(building_id)
             try:
+                db_building = await session.merge(db_building)
                 await session.delete(db_building)
                 await session.commit()
                 return db_building
