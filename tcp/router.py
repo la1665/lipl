@@ -5,10 +5,10 @@ from sqlalchemy.future import select
 from typing import List
 
 from db.engine import get_db
-from lpr.model import DBLpr, DBClient
-from tcp.schema import CommandRequest
-from tcp.tcp_client import send_command_to_server
-from tcp.manager import connection_manager
+from client.models import LPR, Client
+from tcp_connection.schemas import CommandRequest
+from tcp_connection.TCPClient import send_command_to_server
+from tcp_connection.manager import connection_manager
 
 
 # servers = [
@@ -29,14 +29,29 @@ tcp_router = APIRouter()
 async def send_command(request: CommandRequest, db:AsyncSession=Depends(get_db)):
     # global tcp_factories
 
-    print(f"Received request for server: {request.client_id}")
+    print(f"Received request from client: {request.client_id}")
     factory = await connection_manager.get_connection(request.client_id)
     if not factory:
-            raise HTTPException(status_code=404, detail="TCP client for the requested LPR server not found")
+            raise HTTPException(status_code=404, detail="TCP client for the requested camera not found")
 
     if not factory.authenticated:
-        raise HTTPException(status_code=400, detail=f"TCP client for LPR server {request.client_id} is not authenticated or connected")
+        raise HTTPException(status_code=400, detail=f"TCP client: {request.client_id} is not authenticated or connected")
 
+
+    # lpr = await db.execute(select(LPR).where(LPR.id == request.lpr_id))
+    # lpr = lpr.unique().scalars().first()
+    # if not lpr:
+    #         raise HTTPException(status_code=404, detail="LPR server not found")
+
+    # with tcp_factory_lock:
+    #     if lpr.id not in tcp_factories:
+    #         raise HTTPException(status_code=404, detail="TCP client for the requested LPR server not found")
+
+
+        # factory = tcp_factories[lpr.id]
+
+        # if not factory.authenticated:
+        #     raise HTTPException(status_code=400, detail=f"TCP client for server {lpr.id} is not authenticated or connected")
 
     command_data = {
         "commandType": request.commandType,

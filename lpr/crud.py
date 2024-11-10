@@ -3,10 +3,12 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import selectinload
+from twisted.internet import reactor
 
 from lpr.model import DBBuilding, DBGate, DBCameraSetting, DBCamera, DBLpr, DBClient
 from lpr.schema import CameraCreate, CameraSettingCreate, CameraSettingUpdate, CameraUpdate
-
+from tcp.tcp_client import connect_to_server
+from tcp.manager import connection_manager
 
 class CrudOperation:
     def __init__(self, db_session: AsyncSession) -> None:
@@ -390,6 +392,7 @@ class ClientOperation(CrudOperation):
         async with self.db_session as session:
             db_lpr = await LprOperation(session).get_lpr(client.lpr_id)
             try:
+                db_lpr = await session.merge(db_lpr)
                 # Create the new Client instance
                 new_client = DBClient(
                     ip=client.ip,
@@ -408,25 +411,16 @@ class ClientOperation(CrudOperation):
                     if len(cameras) != len(client.camera_ids):
                         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more cameras not found")
                     new_client.cameras.extend(cameras)
-                    # new_client.cameras = cameras
 
                 # Add the client to the database
                 session.add(new_client)
                 await session.commit()
                 await session.refresh(new_client)
-
-                # result = await db.execute(
-                #     select(Client)
-                #     .where(Client.id == new_client.id)
-                #     .options(selectinload(Client.cameras), selectinload(Client.lpr))
-                # )
-
-                # Retrieve the client object with all related data properly loaded
-                # client_with_cameras = result.unique().scalars().first()
-
-                # return client_with_cameras
-                # factory = connect_to_server(new_client.ip, new_client.port, new_client.auth_token)
-                # await connection_manager.add_connection(new_client.id, factory)
+                factory = connect_to_server(server_ip=new_client.ip, port=new_client.port, auth_token=new_client.auth_token)
+                await connection_manager.add_connection(new_client.id, factory)
+                if not reactor.running:
+                    reactor_thread = threading.Thread(target=reactor.run, args=(False,), daemon=True)
+                    reactor_thread.start()
                 return new_client
             except SQLAlchemyError as e:
                 await session.rollback()

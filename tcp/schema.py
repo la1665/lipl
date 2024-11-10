@@ -5,5 +5,5 @@ class CommandRequest(BaseModel):
     client_id: int
     # name: str
     commandType: str
-    cameraId: str
+    camera_id: str
     duration: int

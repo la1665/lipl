@@ -10,28 +10,29 @@ from sqlalchemy.future import select
 from db.engine import engine, Base, async_session
 from utils.db_utils import create_default_admin
 from lpr.model import DBLpr, DBClient
-# from tcp_connection.TCPClient import connect_to_server, send_command_to_server
-# from tcp_connection.router import tcp_factories, tcp_factory_lock
-# from tcp_connection.manager import connection_manager
+from tcp.tcp_client import connect_to_server, send_command_to_server
+from tcp.router import tcp_factories, tcp_factory_lock
+from tcp.manager import connection_manager
 
 logger = logging.getLogger(__name__)
 
-# async def initialize_tcp_clients():
-#     """
-#     Initialize a TCP client for each server and store the factory.
-#     """
-#     async with async_session() as session:
-#         print("fetching all clients: ... ")
-#         result = await session.execute(select(Client))
-#         clients = result.unique().scalars().all()
-#         print(f"Found clients: {len(clients)} ")
+async def initialize_tcp_clients():
+    """
+    Initialize a TCP client for each server and store the factory.
+    """
+    async with async_session() as session:
+        print("fetching all clients: ... ")
+        result = await session.execute(select(DBClient))
+        clients = result.unique().scalars().all()
+        print(f"Found clients: {len(clients)} ")
 
-#     for client in clients:
-#         factory = connect_to_server(server_ip=client.ip, port=client.port, auth_token=client.auth_token)
-#         await connection_manager.add_connection(client.id, factory)
-#     if not reactor.running:
-#         reactor_thread = threading.Thread(target=reactor.run, args=(False,), daemon=True)
-#         reactor_thread.start()
+    for client in clients:
+        factory = connect_to_server(server_ip=client.ip, port=client.port, auth_token=client.auth_token)
+        await connection_manager.add_connection(client.id, factory)
+    if not reactor.running:
+        reactor_thread = threading.Thread(target=reactor.run, args=(False,), daemon=True)
+        reactor_thread.start()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -55,8 +56,8 @@ async def lifespan(app: FastAPI):
 
 
     # Start the Twisted reactor in a separate thread
-    # def start_reactor():
-    #     reactor.run(installSignalHandlers=False)
+    def start_reactor():
+        reactor.run(installSignalHandlers=False)
 
     # Initialize TCP clients for all LPRs
     # async def initialize_tcp_clients():
@@ -78,17 +79,17 @@ async def lifespan(app: FastAPI):
                 # tcp_factories[lpr.id] = factory
         # asyncio.run(setup_lpr_clients())
 
-    # Initialize connections to all servers
 
-    # await initialize_tcp_clients()
+    # Initialize connections to all servers
+    await initialize_tcp_clients()
     # reactor_thread = threading.Thread(target=start_reactor,  daemon=True)
     # reactor_thread.start()
 
 
     # Allow some time for TCP clients to authenticate before FastAPI starts serving
-    # time.sleep(2)
-
-    # print("[INFO] TCP clients initialized")
+    time.sleep(5)
+    logger.info("TCP clients initialized")
+    print("[INFO] TCP clients initialized")
     yield
     # Clean up resources
     await engine.dispose()

@@ -1,3 +1,4 @@
+import uvicorn
 import os
 import logging
 from fastapi import FastAPI
@@ -9,7 +10,7 @@ from auth.router import auth_router
 from user.router import user_router
 from lpr.router import building_router, gate_router, settings_router, camera_router, lpr_router, client_router
 from tcp.router import tcp_router
-from tcp.tcp_client import sio as tcp_sio
+from tcp.socket_management import sio as tcp_sio
 from logging_config import setup_logging
 
 setup_logging()
@@ -47,12 +48,12 @@ app_socket = socketio.ASGIApp(
 logger.info("Starting Web Socket along with FastAPI application")
 
 
-# def main():
-#     """
-#     Main entry point for running the FastAPI app.
-#     """
-#     uvicorn.run("main:app_socket", host="0.0.0.0", port=8000, reload=True, --ssl-keyfile client_key_path --ssl-certfile client_cert_path)
+def main():
+    """
+    Main entry point for running the FastAPI app.
+    """
+    uvicorn.run("main:app_socket", host="0.0.0.0", port=8000, ssl_keyfile="./cert/client.key", ssl_certfile="./cert/client.crt", ssl_ca_certs="./cert/ca.crt")
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
