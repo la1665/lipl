@@ -22,7 +22,7 @@ class BuildingOperation(CrudOperation):
             query = await session.execute(
                     select(DBBuilding)
                     .where(DBBuilding.id == building_id)
-                    .options(selectinload(DBBuilding.gates))
+                    .options(selectinload(DBBuilding.gates).selectinload(DBGate.cameras))
                 )
             building = query.unique().scalars().first()
             if building is None:
