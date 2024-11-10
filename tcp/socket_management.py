@@ -5,8 +5,8 @@ from socketio import AsyncServer
 from urllib.parse import parse_qs
 
 from db.engine import get_db  # Import your async_session
-from authentication.access_level import get_user, get_current_user # Import your get_user function
-from user.models import UserType
+from auth.access_level import get_user, get_current_user # Import your get_user function
+from user.model import UserType
 
 # Initialize Socket.IO server
 sio = AsyncServer(async_mode="asgi", cors_allowed_origins='*')

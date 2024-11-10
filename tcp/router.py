@@ -5,10 +5,10 @@ from sqlalchemy.future import select
 from typing import List
 
 from db.engine import get_db
-from client.models import LPR, Client
-from tcp_connection.schemas import CommandRequest
-from tcp_connection.TCPClient import send_command_to_server
-from tcp_connection.manager import connection_manager
+from lpr.model import DBLpr, DBClient
+from tcp.schema import CommandRequest
+from tcp.tcp_client import send_command_to_server
+from tcp.manager import connection_manager
 
 
 # servers = [
