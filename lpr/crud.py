@@ -601,7 +601,7 @@ class LprOperation(CrudOperation):
 
     async def get_lprs(self, skip: int = 0, limit: int = 10):
         async with self.db_session as session:
-            query = await session.execute(select(DBLpr).options(selectinload(DBLpr.clients)).offset(skip).limit(limit))
+            query = await session.execute(select(DBLpr).offset(skip).limit(limit))
             return query.unique().scalars().all()
 
     async def create_lpr(self, lpr):
