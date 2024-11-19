@@ -47,9 +47,9 @@ async def api_delete_building(building_id: int, db:AsyncSession=Depends(get_db),
 async def api_create_gate(gate: GateCreate, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     return await GateOperation(db).create_gate(gate)
 
-@gate_router.get("/gates/", response_model=List[GateInDB])
-async def api_get_gates(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
-    return await GateOperation(db).get_gates(skip, limit)
+@gate_router.get("/gates/", response_model=GatePagination)
+async def api_get_gates(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+    return await GateOperation(db).get_gates(page, page_size)
 
 @gate_router.get("/gates/{gate_id}", response_model=GateInDB)
 async def api_get_gate(gate_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):

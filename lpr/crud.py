@@ -87,11 +87,6 @@ class BuildingOperation(CrudOperation):
                 session.add(new_building)
                 await session.commit()
                 await session.refresh(new_building)
-                # result = await session.execute(
-                #         select(DBBuilding)
-                #         .where(DBBuilding.id == new_building.id)
-                #     )
-                # new_building = result.scalars().first()
                 return new_building
             except SQLAlchemyError as e:
                 await session.rollback()
@@ -139,12 +134,30 @@ class GateOperation(CrudOperation):
                 raise HTTPException(status_code=404, detail="gate not found")
             return db_gate
 
-    async def get_gates(self, skip: int = 0, limit: int = 10):
+    async def get_gates(self, page: int = 1, page_size: int = 10):
         async with self.db_session as session:
-            query = await session.execute(select(DBGate)
-                .offset(skip).limit(limit)
+            # Calculate total number of records
+            total_query = await session.execute(select(func.count(DBGate.id)))
+            total_records = total_query.scalar_one()
+
+            # Calculate total number of pages
+            total_pages = math.ceil(total_records / page_size) if page_size else 1
+
+            # Calculate offset
+            offset = (page - 1) * page_size
+
+            # Fetch the records
+            query = await session.execute(
+                select(DBGate).offset(offset).limit(page_size)
             )
-            return query.unique().scalars().all()
+            gates = query.unique().scalars().all()
+            return {
+                "items": gates,
+                "total_records": total_records,
+                "total_pages": total_pages,
+                "current_page": page,
+                "page_size": page_size,
+            }
 
     async def create_gate(self, gate):
         async with self.db_session as session:
@@ -220,12 +233,30 @@ class SettingOperation(CrudOperation):
             setting = query.unique().scalar_one_or_none()
             return setting
 
-    async def get_settings(self, skip: int=0, limit: int=10):
+    async def get_settings(self, page: int=1, page_size: int=10):
         async with self.db_session as session:
-            query = await session.execute(select(DBCameraSetting)
-                .offset(skip).limit(limit)
+            # Calculate total number of records
+            total_query = await session.execute(select(func.count(DBCameraSetting.id)))
+            total_records = total_query.scalar_one()
+
+            # Calculate total number of pages
+            total_pages = math.ceil(total_records / page_size) if page_size else 1
+
+            # Calculate offset
+            offset = (page - 1) * page_size
+
+            # Fetch the records
+            query = await session.execute(
+                select(DBCameraSetting).offset(offset).limit(page_size)
             )
-            return query.unique().scalars().all()
+            settings = query.unique().scalars().all()
+            return {
+                "items": settings,
+                "total_records": total_records,
+                "total_pages": total_pages,
+                "current_page": page,
+                "page_size": page_size,
+            }
 
     async def create_setting(self, setting):
         async with self.db_session as session:
@@ -291,13 +322,30 @@ class CameraOperation(CrudOperation):
                 raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Building not found")
             return camera
 
-    async def get_cameras(self, skip: int=0, limit: int=10):
+    async def get_cameras(self, page: int=1, page_size: int=10):
         async with self.db_session as session:
-            cameras = await session.execute(
-                select(DBCamera)
-                .offset(skip).limit(limit)
+            # Calculate total number of records
+            total_query = await session.execute(select(func.count(DBCamera.id)))
+            total_records = total_query.scalar_one()
+
+            # Calculate total number of pages
+            total_pages = math.ceil(total_records / page_size) if page_size else 1
+
+            # Calculate offset
+            offset = (page - 1) * page_size
+
+            # Fetch the records
+            query = await session.execute(
+                select(DBCamera).offset(offset).limit(page_size)
             )
-            return cameras.unique().scalars().all()
+            cameras = query.unique().scalars().all()
+            return {
+                "items": cameras,
+                "total_records": total_records,
+                "total_pages": total_pages,
+                "current_page": page,
+                "page_size": page_size,
+            }
 
     async def create_camera(self, camera: CameraCreate):
         async with self.db_session as session:
@@ -445,7 +493,6 @@ class CameraOperation(CrudOperation):
                     description=setting_create.description,
                     value=setting_create.value,
                     setting_type=setting_create.setting_type,
-                    is_active=setting_create.is_active,
                     default_setting_id=default_setting.id if default_setting else None
                 )
                 session.add(setting_instance)
@@ -518,12 +565,30 @@ class LprSettingOperation(CrudOperation):
             setting = query.unique().scalar_one_or_none()
             return setting
 
-    async def get_settings(self, skip: int=0, limit: int=10):
+    async def get_settings(self, page: int=1, page_size: int=10):
         async with self.db_session as session:
+            # Calculate total number of records
+            total_query = await session.execute(select(func.count(DBLprSetting.id)))
+            total_records = total_query.scalar_one()
+
+            # Calculate total number of pages
+            total_pages = math.ceil(total_records / page_size) if page_size else 1
+
+            # Calculate offset
+            offset = (page - 1) * page_size
+
+            # Fetch the records
             query = await session.execute(
-                select(DBLprSetting).offset(skip).limit(limit)
+                select(DBLprSetting).offset(offset).limit(page_size)
             )
-            return query.scalars().all()
+            settings = query.unique().scalars().all()
+            return {
+                "items": settings,
+                "total_records": total_records,
+                "total_pages": total_pages,
+                "current_page": page,
+                "page_size": page_size,
+            }
 
     async def create_setting(self, setting):
         async with self.db_session as session:
@@ -599,10 +664,30 @@ class LprOperation(CrudOperation):
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LPR not found")
             return lpr
 
-    async def get_lprs(self, skip: int = 0, limit: int = 10):
+    async def get_lprs(self, page: int = 1, page_size: int = 10):
         async with self.db_session as session:
-            query = await session.execute(select(DBLpr).offset(skip).limit(limit))
-            return query.unique().scalars().all()
+            # Calculate total number of records
+            total_query = await session.execute(select(func.count(DBLpr.id)))
+            total_records = total_query.scalar_one()
+
+            # Calculate total number of pages
+            total_pages = math.ceil(total_records / page_size) if page_size else 1
+
+            # Calculate offset
+            offset = (page - 1) * page_size
+
+            # Fetch the records
+            query = await session.execute(
+                select(DBLpr).offset(offset).limit(page_size)
+            )
+            lprs = query.unique().scalars().all()
+            return {
+                "items": lprs,
+                "total_records": total_records,
+                "total_pages": total_pages,
+                "current_page": page,
+                "page_size": page_size,
+            }
 
     async def create_lpr(self, lpr):
         async with self.db_session as session:
@@ -628,7 +713,6 @@ class LprOperation(CrudOperation):
                         description=setting.description,
                         value=setting.value,
                         setting_type=setting.setting_type,
-                        is_active=setting.is_active,
                         default_setting_id=setting.id
                     )
                     session.add(setting_instance)

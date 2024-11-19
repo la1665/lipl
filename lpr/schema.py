@@ -1,8 +1,9 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
-from typing import Optional, List, TYPE_CHECKING
+from typing import Optional, Generic, List, TypeVar, TYPE_CHECKING
 
 from lpr.model import GateType, SettingType
+
 if TYPE_CHECKING:
     from lpr.schema import (
         GateInDB,
@@ -52,6 +53,7 @@ class GateUpdate(BaseModel):
     description: Optional[str] = None
     building_id: Optional[int] = None
     gate_type: Optional[GateType] = None
+    is_active: Optional[bool] = None
 
 
 class GateInDB(GateBase):
@@ -71,7 +73,6 @@ class CameraSettingInstanceBase(BaseModel):
     description: Optional[str] = None
     value: str
     setting_type: SettingType
-    is_active: bool = True
 
 
 class CameraSettingInstanceCreate(CameraSettingInstanceBase):
@@ -89,6 +90,7 @@ class CameraSettingInstanceUpdate(BaseModel):
 class CameraSettingInstanceInDB(CameraSettingInstanceBase):
     id: int
     camera_id: int
+    is_active: bool
     created_at: datetime
     updated_at: datetime
 
@@ -103,7 +105,6 @@ class LprSettingInstanceBase(BaseModel):
     description: Optional[str] = None
     value: str
     setting_type: SettingType
-    is_active: bool = True
 
 
 class LprSettingInstanceCreate(LprSettingInstanceBase):
@@ -121,6 +122,7 @@ class LprSettingInstanceUpdate(BaseModel):
 class LprSettingInstanceInDB(LprSettingInstanceBase):
     id: int
     lpr_id: int
+    is_active: bool
     created_at: datetime
     updated_at: datetime
 
@@ -158,6 +160,8 @@ class CameraSettingUpdate(BaseModel):
     description: Optional[str] = None
     value: Optional[str] = None
     setting_type: Optional[SettingType] = None
+    is_active: Optional[bool] = None
+
 
 class CameraSettingInDB(CameraSettingBase):
     id: int
@@ -190,6 +194,7 @@ class CameraUpdate(BaseModel):
     description: Optional[str] = None
     gate_id: Optional[int] = None
     lpr_ids: Optional[List[int]] = []
+    is_active: Optional[bool] = None
 
 
 class CameraInDB(CameraBase):
@@ -220,6 +225,7 @@ class LprSettingUpdate(BaseModel):
     description: Optional[str] = None
     value: Optional[str] = None
     setting_type: Optional[SettingType] = None
+    is_active: Optional[bool] = None
 
 class LprSettingInDB(LprSettingBase):
     id: int
@@ -230,7 +236,6 @@ class LprSettingInDB(LprSettingBase):
 
     class Config:
         from_attributes = True
-
 
 
 class LprBase(BaseModel):
@@ -254,6 +259,7 @@ class LprUpdate(BaseModel):
     auth_token: Optional[str] = None
     latitude: Optional[str] = None
     longitude: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class LprInDB(LprBase):
     id: int
@@ -268,8 +274,20 @@ class LprInDB(LprBase):
 
 
 
-class BuildingPagination(BaseModel):
-    items: List[BuildingInDB]
+# class BuildingPagination(BaseModel):
+#     items: List[BuildingInDB]
+#     total_records: int
+#     total_pages: int
+#     current_page: int
+#     page_size: int
+
+#     class Config:
+#         from_attributes = True
+
+
+T = TypeVar('T')
+class Pagination(BaseModel, Generic[T]):
+    items: List[T]
     total_records: int
     total_pages: int
     current_page: int
@@ -277,3 +295,8 @@ class BuildingPagination(BaseModel):
 
     class Config:
         from_attributes = True
+
+BuildingPagination = Pagination[BuildingInDB]
+GatePagination = Pagination[GateInDB]
+CameraPagination = Pagination[CameraInDB]
+LprPagination = Pagination[LprInDB]
