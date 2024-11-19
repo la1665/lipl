@@ -298,5 +298,7 @@ class Pagination(BaseModel, Generic[T]):
 
 BuildingPagination = Pagination[BuildingInDB]
 GatePagination = Pagination[GateInDB]
+CameraSettingPagination = Pagination[CameraSettingInDB]
 CameraPagination = Pagination[CameraInDB]
+LprSettingPagination = Pagination[LprSettingInDB]
 LprPagination = Pagination[LprInDB]

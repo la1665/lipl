@@ -72,8 +72,8 @@ async def api_create_setting(setting: CameraSettingCreate, db: AsyncSession = De
     return await SettingOperation(db).create_setting(setting)
 
 @camera_settings_router.get("/camera-settings/", response_model=List[CameraSettingInDB])
-async def api_read_settings(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
-    settings = await SettingOperation(db).get_settings(skip=skip, limit=limit)
+async def api_read_settings(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
+    settings = await SettingOperation(db).get_settings(page, page_size)
     return settings
 
 @camera_settings_router.get("/camera-settings/{setting_id}", response_model=CameraSettingInDB)
@@ -101,11 +101,11 @@ async def api_create_camera(camera: CameraCreate, db: AsyncSession=Depends(get_d
     return await CameraOperation(db).create_camera(camera)
 
 @camera_router.get("/cameras/", response_model=List[CameraInDB])
-async def api_read_cameras(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
+async def api_read_cameras(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
     """
     Lists all the registered cameras.
     """
-    cameras = await CameraOperation(db).get_cameras(skip=skip, limit=limit)
+    cameras = await CameraOperation(db).get_cameras(page, page_size)
     return cameras
 
 @camera_router.get("/cameras/{camera_id}", response_model=CameraInDB)
@@ -173,14 +173,14 @@ async def api_create_lpr_setting(
     return await LprSettingOperation(db).create_setting(setting)
 
 
-@lpr_setting_router.get("/lpr-settings/", response_model=List[LprSettingInDB])
+@lpr_setting_router.get("/lpr-settings/", response_model=LprSettingPagination)
 async def api_get_lpr_settings(
-    skip: int = 0,
-    limit: int = 10,
+    page: int = 1,
+    page_size: int = 10,
     db: AsyncSession = Depends(get_db),
     current_user: UserInDB = Depends(get_current_active_user),
 ):
-    return await LprSettingOperation(db).get_settings(skip, limit)
+    return await LprSettingOperation(db).get_settings(page, page_size)
 
 
 @lpr_setting_router.get("/lpr-settings/{setting_id}", response_model=LprSettingInDB)
@@ -216,9 +216,9 @@ async def api_delete_lpr_setting(
 async def api_create_lpr(lpr: LprCreate, db: AsyncSession = Depends(get_db), current_user:UserInDB=Depends(get_admin_or_staff_user)):
     return await LprOperation(db).create_lpr(lpr)
 
-@lpr_router.get("/lprs/", response_model=List[LprInDB])
-async def api_get_lprs(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db), current_user:UserInDB=Depends(get_current_active_user)):
-    return await LprOperation(db).get_lprs(skip, limit)
+@lpr_router.get("/lprs/", response_model=LprPagination)
+async def api_get_lprs(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user:UserInDB=Depends(get_current_active_user)):
+    return await LprOperation(db).get_lprs(page, page_size)
 
 @lpr_router.get("/lprs/{lpr_id}", response_model=LprInDB)
 async def api_read_lpr(lpr_id: int, db: AsyncSession=Depends(get_db), current_user:UserInDB=Depends(get_current_active_user)):

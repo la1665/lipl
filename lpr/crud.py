@@ -640,8 +640,6 @@ class LprSettingOperation(CrudOperation):
                 raise HTTPException(status.HTTP_409_CONFLICT, f"{error}: Could not delete setting")
 
 
-
-
 class LprOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session)
