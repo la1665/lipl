@@ -264,3 +264,15 @@ class LprInDB(LprBase):
 
     class Config:
         from_attributes = True
+
+
+
+class BuildingPagination(BaseModel):
+    items: List[BuildingInDB]
+    total_records: int
+    total_pages: int
+    current_page: int
+    page_size: int
+
+    class Config:
+        from_attributes = True

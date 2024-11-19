@@ -23,9 +23,9 @@ lpr_router = APIRouter(prefix="/v1")
 async def api_create_building(building: BuildingCreate, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     return await BuildingOperation(db).create_building(building)
 
-@building_router.get("/buildings/", response_model=List[BuildingInDB])
-async def api_get_buildings(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
-    return await BuildingOperation(db).get_buildings(skip, limit)
+@building_router.get("/buildings/", response_model=BuildingPagination)
+async def api_get_buildings(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):
+    return await BuildingOperation(db).get_buildings(page, page_size)
 
 @building_router.get("/buildings/{building_id}", response_model=BuildingInDB)
 async def api_get_building(building_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB = Depends(get_current_active_user)):

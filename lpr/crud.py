@@ -1,4 +1,6 @@
+import math
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
@@ -46,12 +48,32 @@ class BuildingOperation(CrudOperation):
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Building not found")
             return building
 
-    async def get_buildings(self, skip: int = 0, limit: int = 10):
+    async def get_buildings(self, page: int = 1, page_size: int = 10):
         async with self.db_session as session:
-            query = await session.execute(select(DBBuilding)
-                .offset(skip)
-                .limit(limit))
-            return query.unique().scalars().all()
+            # Calculate total number of records
+            total_query = await session.execute(select(func.count(DBBuilding.id)))
+            total_records = total_query.scalar_one()
+
+            # Calculate total number of pages
+            total_pages = math.ceil(total_records / page_size) if page_size else 1
+
+            # Calculate offset
+            offset = (page - 1) * page_size
+
+            # Fetch the records
+            query = await session.execute(
+                select(DBBuilding).offset(offset).limit(page_size)
+            )
+            buildings = query.unique().scalars().all()
+
+            return {
+                "items": buildings,
+                "total_records": total_records,
+                "total_pages": total_pages,
+                "current_page": page,
+                "page_size": page_size,
+            }
+
 
     async def create_building(self, building):
         async with self.db_session as session:
