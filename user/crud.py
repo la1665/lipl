@@ -104,7 +104,7 @@ class UserOperation:
                 logger.error(f"Failed to update user {user_id}: {e}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Failed to update user."
+                    detail=f"Failed to update user: {e}."
                 )
 
 

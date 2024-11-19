@@ -24,7 +24,7 @@ class DBUser(Base):
     national_id = Column(String(10), nullable=True)
     personal_number = Column(String(10), nullable=True)
     office = Column(String(255), nullable=True)
-    phone_number = Column(String(10), nullable=True)
+    phone_number = Column(String(11), nullable=True)
     hashed_password = Column(String(255), nullable=False)
     user_type = Column(sqlalchemyEnum(UserType), default=UserType.USER, nullable=False)
     profile_image = Column(String, nullable=True)
