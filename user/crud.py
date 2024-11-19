@@ -129,15 +129,16 @@ class UserOperation:
                         detail="You can only change the is_active status of users with the 'user, viewer' role"
                     )
 
-            user.is_active = not user.is_active
 
             try:
+                user = await session.merge(user)
+                user.is_active = not user.is_active
                 await session.commit()
                 await session.refresh(user)
                 return user
-            except:
+            except SQLAlchemyError as error:
                 await session.rollback()
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Could not update user status")
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Could not update user status: {error}.")
 
 
     async def upload_profile_image(self, user_id: int, profile_image: UploadFile):
