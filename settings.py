@@ -6,8 +6,8 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: Optional[str] = None
     POSTGRES_DB: Optional[str] = None
     POSTGRES_HOST: Optional[str] = None
-    # POSTGRES_PORT: int=48647
-    POSTGRES_PORT: int=5432
+    POSTGRES_PORT: int=48647
+    # POSTGRES_PORT: int=5432
     SECRET_KEY: Optional[str] = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int=120
     ALGORITHM: Optional[str] = None
