@@ -157,8 +157,8 @@ class UserOperation:
             #     delete_profile_image(old_filename)
 
             # Upload new profile image
-            image_url = upload_profile_image(file_data, user.id, profile_image.filename, profile_image.content_type)
-            user.profile_image = image_url
+            image_name = upload_profile_image(file_data, user.id, profile_image.filename, profile_image.content_type)
+            user.profile_image = image_name
 
             try:
                 async with self.db_session as session:

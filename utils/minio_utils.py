@@ -24,11 +24,7 @@ def upload_profile_image(file_data: bytes, user_id: int, filename: str, content_
         )
 
 
-        # Generate a pre-signed URL for accessing the image
-        image_url = minio_client.presigned_get_object(
-            settings.MINIO_PROFILE_IMAGE_BUCKET, unique_filename
-        )
-        return image_url
+        return unique_filename
 
     except S3Error as error:
         print(f"Error uploading profile image: {error}")

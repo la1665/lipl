@@ -112,4 +112,4 @@ async def get_profile_image(
         return StreamingResponse(response, media_type="image/jpeg")  # Adjust media_type as needed
     except S3Error as e:
         print(f"Error fetching image: {e}")
-        raise HTTPException(status.HTTP_409_CONFLICT, detail="Failed to fetch profile image.")
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=f"Failed to fetch profile image: {e}.")
