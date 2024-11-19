@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from minio.error import S3Error
 
 from db.engine import get_db
+from minio_db.engine import minio_client
 from user.crud import UserOperation
 from user.model import UserType
 from user.schema import UserInDB, UserCreate, UserUpdate
