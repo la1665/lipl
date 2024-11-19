@@ -71,7 +71,7 @@ async def api_delete_gate(gate_id: int, db:AsyncSession=Depends(get_db), current
 async def api_create_setting(setting: CameraSettingCreate, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     return await SettingOperation(db).create_setting(setting)
 
-@camera_settings_router.get("/camera-settings/", response_model=List[CameraSettingInDB])
+@camera_settings_router.get("/camera-settings/", response_model=CameraSettingPagination)
 async def api_read_settings(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
     settings = await SettingOperation(db).get_settings(page, page_size)
     return settings
@@ -100,7 +100,7 @@ async def api_create_camera(camera: CameraCreate, db: AsyncSession=Depends(get_d
     """
     return await CameraOperation(db).create_camera(camera)
 
-@camera_router.get("/cameras/", response_model=List[CameraInDB])
+@camera_router.get("/cameras/", response_model=CameraPagination)
 async def api_read_cameras(page: int = 1, page_size: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
     """
     Lists all the registered cameras.
