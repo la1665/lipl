@@ -91,7 +91,7 @@ class UserOperation:
         async with self.db_session as session:
             db_user = await self.get_user(user_id)
             try:
-                db_user = session.merge(db_user)
+                db_user = await session.merge(db_user)
                 for key, value in user_update.dict(exclude_unset=True).items():
                     setattr(db_user, key, value)
 
@@ -112,7 +112,7 @@ class UserOperation:
         async with self.db_session as session:
             db_user = await self.get_user(user_id)
             try:
-                db_user = session.merge(db_user)
+                db_user = await session.merge(db_user)
                 await session.delete(db_user)
                 await session.commit()
                 return db_user

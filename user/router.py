@@ -58,7 +58,7 @@ async def api_update_user(
     current_user: UserInDB = Depends(get_admin_user)
 ):
     """
-    Update user details and optionally upload a new profile image.
+    Update user details.
 
     Parameters:
     - user_id: ID of the user to update
