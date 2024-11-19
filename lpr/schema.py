@@ -26,6 +26,7 @@ class BuildingUpdate(BaseModel):
     latitude: Optional[str] = None
     longitude: Optional[str] = None
     description: Optional[str] = None
+    is_active: Optional[bool] = None
 
 class BuildingInDB(BuildingBase):
     id: int
