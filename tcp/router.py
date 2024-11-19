@@ -5,7 +5,7 @@ from sqlalchemy.future import select
 from typing import List
 
 from db.engine import get_db
-from lpr.model import DBLpr, DBClient
+from lpr.model import DBLpr
 from tcp.schema import CommandRequest
 from tcp.tcp_client import send_command_to_server
 from tcp.manager import connection_manager

@@ -8,7 +8,7 @@ import socketio
 from lifespan import lifespan
 from auth.router import auth_router
 from user.router import user_router
-from lpr.router import building_router, gate_router, settings_router, camera_router, lpr_router, client_router
+from lpr.router import building_router, gate_router, camera_settings_router, camera_router, lpr_setting_router, lpr_router
 from tcp.router import tcp_router
 from tcp.socket_management import sio as tcp_sio
 from logging_config import setup_logging
@@ -32,10 +32,10 @@ app.include_router(auth_router, tags=["Auth"])
 app.include_router(user_router, tags=["User"])
 app.include_router(building_router, tags=["Buildings"])
 app.include_router(gate_router, tags=["Gates"])
-app.include_router(settings_router, tags=["Camera Settings"])
+app.include_router(camera_settings_router, tags=["Camera Settings"])
 app.include_router(camera_router, tags=["Cameras"])
-app.include_router(lpr_router, tags=["LPRs"])
-app.include_router(client_router, tags=["Clients"])
+app.include_router(lpr_setting_router, tags=["Lpr settings"])
+app.include_router(lpr_router, tags=["Lprs"])
 app.include_router(tcp_router, tags=["tcp"])
 logger.info("All routers added")
 

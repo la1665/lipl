@@ -11,10 +11,10 @@ from user.schema import UserInDB
 
 building_router = APIRouter(prefix="/v1")
 gate_router = APIRouter(prefix="/v1")
-settings_router = APIRouter(prefix="/v1")
+camera_settings_router = APIRouter(prefix="/v1")
 camera_router = APIRouter(prefix="/v1")
+lpr_setting_router = APIRouter(prefix="/v1")
 lpr_router = APIRouter(prefix="/v1")
-client_router = APIRouter(prefix="/v1")
 
 
 
@@ -43,7 +43,7 @@ async def api_delete_building(building_id: int, db:AsyncSession=Depends(get_db),
 
 
 # Gate endpoints
-@gate_router.post("/gates/", response_model=GateInDB)
+@gate_router.post("/gates/", response_model=GateInDB, status_code=status.HTTP_201_CREATED)
 async def api_create_gate(gate: GateCreate, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     return await GateOperation(db).create_gate(gate)
 
@@ -67,26 +67,26 @@ async def api_delete_gate(gate_id: int, db:AsyncSession=Depends(get_db), current
 
 
 # camera setting endpoints
-@settings_router.post("/camera-settings/", response_model=CameraSettingInDB)
+@camera_settings_router.post("/camera-settings/", response_model=CameraSettingInDB, status_code=status.HTTP_201_CREATED)
 async def api_create_setting(setting: CameraSettingCreate, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     return await SettingOperation(db).create_setting(setting)
 
-@settings_router.get("/camera-settings/", response_model=List[CameraSettingInDB])
+@camera_settings_router.get("/camera-settings/", response_model=List[CameraSettingInDB])
 async def api_read_settings(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
     settings = await SettingOperation(db).get_settings(skip=skip, limit=limit)
     return settings
 
-@settings_router.get("/camera-settings/{setting_id}", response_model=CameraSettingInDB)
+@camera_settings_router.get("/camera-settings/{setting_id}", response_model=CameraSettingInDB)
 async def api_read_setting(setting_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_current_active_user)):
     db_setting = await SettingOperation(db).get_setting(setting_id=setting_id)
     return db_setting
 
-@settings_router.put("/camera-settings/{setting_id}", response_model=CameraSettingInDB)
+@camera_settings_router.put("/camera-settings/{setting_id}", response_model=CameraSettingInDB)
 async def api_update_setting(setting_id: int, setting: CameraSettingUpdate, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     db_setting = await SettingOperation(db).update_setting(setting_id, setting)
     return db_setting
 
-@settings_router.delete("/camera-settings/{setting_id}", response_model=CameraSettingInDB)
+@camera_settings_router.delete("/camera-settings/{setting_id}", response_model=CameraSettingInDB)
 async def api_delete_setting(setting_id: int, db: AsyncSession = Depends(get_db), current_user: UserInDB=Depends(get_admin_or_staff_user)):
     db_setting = await SettingOperation(db).delete_setting(setting_id)
     return db_setting
@@ -124,30 +124,148 @@ async def api_delete_camera(camera_id: int, db: AsyncSession = Depends(get_db), 
     db_camera = await CameraOperation(db).delete_camera(camera_id)
     return db_camera
 
+@camera_router.put(
+    "/cameras/{camera_id}/settings/{setting_id}",
+    response_model=CameraSettingInstanceInDB,
+)
+async def api_update_camera_setting(
+    camera_id: int,
+    setting_id: int,
+    setting_update: CameraSettingInstanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    return await CameraOperation(db).update_camera_setting(
+        camera_id, setting_id, setting_update
+    )
+
+@camera_router.post(
+    "/cameras/{camera_id}/settings/", response_model=CameraSettingInstanceInDB
+)
+async def api_add_camera_setting(
+    camera_id: int,
+    setting_create: CameraSettingInstanceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    return await CameraOperation(db).add_camera_setting(camera_id, setting_create)
+
+@camera_router.delete(
+    "/cameras/{camera_id}/settings/{setting_id}",
+    response_model=CameraSettingInstanceInDB,
+)
+async def api_remove_camera_setting(
+    camera_id: int,
+    setting_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    return await CameraOperation(db).remove_camera_setting(camera_id, setting_id)
+
+
+# LPR Setting endpoints
+@lpr_setting_router.post("/lpr-settings/", response_model=LprSettingInDB, status_code=status.HTTP_201_CREATED)
+async def api_create_lpr_setting(
+    setting: LprSettingCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    return await LprSettingOperation(db).create_setting(setting)
+
+
+@lpr_setting_router.get("/lpr-settings/", response_model=List[LprSettingInDB])
+async def api_get_lpr_settings(
+    skip: int = 0,
+    limit: int = 10,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    return await LprSettingOperation(db).get_settings(skip, limit)
+
+
+@lpr_setting_router.get("/lpr-settings/{setting_id}", response_model=LprSettingInDB)
+async def api_get_lpr_setting(
+    setting_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_current_active_user),
+):
+    return await LprSettingOperation(db).get_setting(setting_id)
+
+
+@lpr_setting_router.put("/lpr-settings/{setting_id}", response_model=LprSettingInDB)
+async def api_update_lprsetting(
+    setting_id: int,
+    setting: LprSettingUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    return await LprSettingOperation(db).update_setting(setting_id, setting)
+
+@lpr_setting_router.delete("/lpr-settings/{setting_id}", response_model=LprSettingInDB)
+async def api_delete_lpr_setting(
+    setting_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    return await LprSettingOperation(db).delete_setting(setting_id)
+
+
 
 #lpr endpoints
-@lpr_router.post("/lprs/", response_model=LPRInDB)
-async def api_create_lpr(lpr: LPRCreate, db: AsyncSession = Depends(get_db), current_user:UserInDB=Depends(get_admin_or_staff_user)):
+@lpr_router.post("/lprs/", response_model=LprInDB, status_code=status.HTTP_201_CREATED)
+async def api_create_lpr(lpr: LprCreate, db: AsyncSession = Depends(get_db), current_user:UserInDB=Depends(get_admin_or_staff_user)):
     return await LprOperation(db).create_lpr(lpr)
 
-@lpr_router.get("/lprs/", response_model=List[LPRInDB])
+@lpr_router.get("/lprs/", response_model=List[LprInDB])
 async def api_get_lprs(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_db), current_user:UserInDB=Depends(get_current_active_user)):
     return await LprOperation(db).get_lprs(skip, limit)
 
-@lpr_router.get("/lprs/{lpr_id}", response_model=LPRInDB)
+@lpr_router.get("/lprs/{lpr_id}", response_model=LprInDB)
 async def api_read_lpr(lpr_id: int, db: AsyncSession=Depends(get_db), current_user:UserInDB=Depends(get_current_active_user)):
     return await LprOperation(db).get_lpr(lpr_id)
 
-@lpr_router.put("/lprs/{lpr_id}", response_model=LPRInDB)
-async def api_update_lpr(lpr_id: int, lpr: LPRUpdate, db:AsyncSession=Depends(get_db), current_user:UserInDB=Depends(get_admin_or_staff_user)):
+@lpr_router.put("/lprs/{lpr_id}", response_model=LprInDB)
+async def api_update_lpr(lpr_id: int, lpr: LprUpdate, db:AsyncSession=Depends(get_db), current_user:UserInDB=Depends(get_admin_or_staff_user)):
     return await LprOperation(db).update_lpr(lpr_id, lpr)
 
-@lpr_router.delete("/lprs/{lpr_id}", response_model=LPRInDB)
+@lpr_router.delete("/lprs/{lpr_id}", response_model=LprInDB)
 async def api_delete_lpr(lpr_id: int, db:AsyncSession=Depends(get_db), current_user:UserInDB=Depends(get_admin_or_staff_user)):
     return await LprOperation(db).delete_lpr(lpr_id)
 
+@lpr_router.put(
+    "/lprs/{lpr_id}/settings/{setting_id}",
+    response_model=LprSettingInstanceInDB,
+)
+async def api_update_lpr_setting(
+    lpr_id: int,
+    setting_id: int,
+    setting_update: LprSettingInstanceUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    return await LprOperation(db).update_lpr_setting(
+        lpr_id, setting_id, setting_update
+    )
 
-#client endpoints
-@client_router.post("/clients/", response_model=ClientInDB, dependencies=[Depends(get_admin_or_staff_user)], status_code=status.HTTP_201_CREATED)
-async def api_create_client(client: ClientCreate, db: AsyncSession = Depends(get_db)):
-    return await ClientOperation(db).create_client(client)
+@lpr_router.post(
+    "/lprs/{lpr_id}/settings/", response_model=LprSettingInstanceInDB
+)
+async def api_add_lpr_setting(
+    lpr_id: int,
+    setting_create: LprSettingInstanceCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    return await LprOperation(db).add_lpr_setting(lpr_id, setting_create)
+
+@lpr_router.delete(
+    "/lprs/{lpr_id}/settings/{setting_id}",
+    response_model=LprSettingInstanceInDB,
+)
+async def api_remove_lpr_setting(
+    lpr_id: int,
+    setting_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: UserInDB = Depends(get_admin_or_staff_user),
+):
+    return await LprOperation(db).remove_lpr_setting(lpr_id, setting_id)

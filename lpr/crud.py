@@ -3,10 +3,26 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import selectinload
-from twisted.internet import reactor
 
-from lpr.model import DBBuilding, DBGate, DBCameraSetting, DBCamera, DBLpr, DBClient
-from lpr.schema import CameraCreate, CameraSettingCreate, CameraSettingUpdate, CameraUpdate
+from lpr.model import DBBuilding, DBGate, DBCameraSetting, DBCamera, DBLpr, DBLprSetting, DBLprSettingInstance, DBCameraSettingInstance
+from lpr.schema import (
+    BuildingCreate,
+    BuildingUpdate,
+    GateCreate,
+    GateUpdate,
+    CameraCreate,
+    CameraUpdate,
+    CameraSettingInstanceCreate,
+    CameraSettingInstanceUpdate,
+    LprCreate,
+    LprUpdate,
+    CameraSettingCreate,
+    CameraSettingUpdate,
+    LprSettingCreate,
+    LprSettingUpdate,
+    LprSettingInstanceCreate,
+    LprSettingInstanceUpdate,
+)
 from tcp.tcp_client import connect_to_server
 from tcp.manager import connection_manager
 
@@ -24,9 +40,8 @@ class BuildingOperation(CrudOperation):
             query = await session.execute(
                     select(DBBuilding)
                     .where(DBBuilding.id == building_id)
-                    .options(selectinload(DBBuilding.gates).selectinload(DBGate.cameras))
                 )
-            building = query.unique().scalars().first()
+            building = query.unique().scalar_one_or_none()
             if building is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Building not found")
             return building
@@ -34,7 +49,6 @@ class BuildingOperation(CrudOperation):
     async def get_buildings(self, skip: int = 0, limit: int = 10):
         async with self.db_session as session:
             query = await session.execute(select(DBBuilding)
-                .options(selectinload(DBBuilding.gates).selectinload(DBGate.cameras))
                 .offset(skip)
                 .limit(limit))
             return query.unique().scalars().all()
@@ -44,18 +58,18 @@ class BuildingOperation(CrudOperation):
             try:
                 new_building = DBBuilding(
                     name=building.name,
-                    location=building.location,
+                    latitude=building.latitude,
+                    longitude=building.longitude,
                     description=building.description
                 )
                 session.add(new_building)
                 await session.commit()
                 await session.refresh(new_building)
-                result = await session.execute(
-                        select(DBBuilding)
-                        .where(DBBuilding.id == new_building.id)
-                        .options(selectinload(DBBuilding.gates))
-                    )
-                new_building = result.scalars().first()
+                # result = await session.execute(
+                #         select(DBBuilding)
+                #         .where(DBBuilding.id == new_building.id)
+                #     )
+                # new_building = result.scalars().first()
                 return new_building
             except SQLAlchemyError as e:
                 await session.rollback()
@@ -97,9 +111,8 @@ class GateOperation(CrudOperation):
         async with self.db_session as session:
             query = await session.execute(select(DBGate)
                 .where(DBGate.id == gate_id)
-                .options(selectinload(DBGate.cameras))
             )
-            db_gate =  query.unique().scalars().first()
+            db_gate =  query.unique().scalar_one_or_none()
             if db_gate is None:
                 raise HTTPException(status_code=404, detail="gate not found")
             return db_gate
@@ -108,7 +121,6 @@ class GateOperation(CrudOperation):
         async with self.db_session as session:
             query = await session.execute(select(DBGate)
                 .offset(skip).limit(limit)
-                .options(selectinload(DBGate.cameras))
             )
             return query.unique().scalars().all()
 
@@ -116,6 +128,7 @@ class GateOperation(CrudOperation):
         async with self.db_session as session:
             db_building = await BuildingOperation(session).get_building(gate.building_id)
             try:
+                db_building = await session.merge(db_building)
                 new_gate = DBGate(name=gate.name,
                     gate_type=gate.gate_type,
                     description=gate.description,
@@ -123,12 +136,11 @@ class GateOperation(CrudOperation):
                 session.add(new_gate)
                 await session.commit()
                 await session.refresh(new_gate)
-                result = await session.execute(
-                        select(DBGate)
-                        .where(DBGate.id == new_gate.id)
-                        .options(selectinload(DBGate.cameras))
-                    )
-                new_gate = result.scalars().first()
+                # result = await session.execute(
+                #         select(DBGate)
+                #         .where(DBGate.id == new_gate.id)
+                #     )
+                # new_gate = result.scalars().first()
                 return new_gate
             except SQLAlchemyError as e:
                 await session.rollback()
@@ -138,6 +150,7 @@ class GateOperation(CrudOperation):
         async with self.db_session as session:
             db_gate = await self.get_gate(gate_id)
             try:
+                db_gate = await session.merge(db_gate)
                 update_data = gate.dict(exclude_unset=True)
                 if "building_id" in update_data:
                     building_id = update_data["building_id"]
@@ -151,10 +164,12 @@ class GateOperation(CrudOperation):
             except SQLAlchemyError as e:
                 await session.rollback()
                 raise HTTPException(status_code=400, detail=str(e))
+
     async def delete_gate(self, gate_id: int):
         async with self.db_session as session:
             db_gate = await self.get_gate(gate_id)
             try:
+                db_gate = await session.merge(db_gate)
                 await session.delete(db_gate)
                 await session.commit()
                 return db_gate
@@ -171,22 +186,26 @@ class SettingOperation(CrudOperation):
         async with self.db_session as session:
             query = await session.execute(
                 select(DBCameraSetting).where(DBCameraSetting.id==setting_id)
-                .options(selectinload(DBCameraSetting.cameras))
             )
-            setting =  query.unique().scalars().first()
+            setting =  query.unique().scalar_one_or_none()
             if setting is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Setting not found")
+            return setting
+
+    async def get_setting_by_name(self, name: str):
+        async with self.db_session as session:
+            query = await session.execute(select(DBCameraSetting).where(DBCameraSetting.name == name))
+            setting = query.unique().scalar_one_or_none()
             return setting
 
     async def get_settings(self, skip: int=0, limit: int=10):
         async with self.db_session as session:
             query = await session.execute(select(DBCameraSetting)
                 .offset(skip).limit(limit)
-                .options(selectinload(DBCameraSetting.cameras))
             )
             return query.unique().scalars().all()
 
-    async def create_setting(self, setting: CameraSettingCreate):
+    async def create_setting(self, setting):
         async with self.db_session as session:
             try:
                 new_setting = DBCameraSetting(
@@ -198,12 +217,11 @@ class SettingOperation(CrudOperation):
                 session.add(new_setting)
                 await session.commit()
                 await session.refresh(new_setting)
-                result = await session.execute(
-                        select(DBCameraSetting)
-                        .where(DBCameraSetting.id == new_setting.id)
-                        .options(selectinload(DBCameraSetting.cameras))
-                    )
-                new_setting = result.scalars().first()
+                # result = await session.execute(
+                #         select(DBCameraSetting)
+                #         .where(DBCameraSetting.id == new_setting.id)
+                #     )
+                # new_setting = result.scalars().first()
                 return new_setting
             except SQLAlchemyError as error:
                 await session.rollback()
@@ -212,8 +230,9 @@ class SettingOperation(CrudOperation):
     async def update_setting(self, setting_id: int, setting: CameraSettingUpdate):
         async with self.db_session as session:
             db_setting = await self.get_setting(setting_id)
-            update_data = setting.dict(exclude_unset=True)
             try:
+                db_setting = await session.merge(db_setting)
+                update_data = setting.dict(exclude_unset=True)
                 for key, value in update_data.items():
                     setattr(db_setting, key, value)
                 await session.commit()
@@ -227,6 +246,7 @@ class SettingOperation(CrudOperation):
         async with self.db_session as session:
             db_setting = await self.get_setting(setting_id)
             try:
+                db_setting = await session.merge(db_setting)
                 await session.delete(db_setting)
                 await session.commit()
                 return db_setting
@@ -243,9 +263,8 @@ class CameraOperation(CrudOperation):
         async with self.db_session as session:
             result = await session.execute(select(DBCamera)
                 .where(DBCamera.id==camera_id)
-                .options(selectinload(DBCamera.settings))
             )
-            camera =  result.unique().scalars().first()
+            camera =  result.unique().scalar_one_or_none()
             if camera is None:
                 raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Building not found")
             return camera
@@ -254,7 +273,6 @@ class CameraOperation(CrudOperation):
         async with self.db_session as session:
             cameras = await session.execute(
                 select(DBCamera)
-                .options(selectinload(DBCamera.settings))
                 .offset(skip).limit(limit)
             )
             return cameras.unique().scalars().all()
@@ -263,20 +281,47 @@ class CameraOperation(CrudOperation):
         async with self.db_session as session:
             db_gate = await GateOperation(session).get_gate(camera.gate_id)
             try:
+                db_gate = await session.merge(db_gate)
+                # if camera.setting_ids:
+                #     result = await session.execute(select(DBCameraSetting).where(DBCameraSetting.id.in_(camera.setting_ids)))
+                #     settings = result.scalars().all()
+                #     if len(settings) != len(camera.setting_ids):
+                #         raise HTTPException(status_code=404, detail="One or more settings not found")
+
+
                 db_camera = DBCamera(
                     name=camera.name,
-                    location=camera.location,
                     latitude=camera.latitude,
                     longitude=camera.longitude,
+                    description=camera.description,
                     gate_id=db_gate.id
                 )
-                if camera.settings:
-                    result = await session.execute(select(DBCameraSetting).where(DBCameraSetting.id.in_(camera.settings)))
-                    settings = result.scalars().all()
-                    if len(settings) != len(camera.settings):
-                        raise HTTPException(status_code=404, detail="One or more settings not found")
-                    db_camera.settings.extend(settings)
                 session.add(db_camera)
+                await session.flush()
+
+                result = await session.execute(select(DBCameraSetting))
+                default_settings = result.scalars().all()
+                for setting in default_settings:
+                    setting_instance = DBCameraSettingInstance(
+                        camera_id=db_camera.id,
+                        name=setting.name,
+                        description=setting.description,
+                        value=setting.value,
+                        setting_type=setting.setting_type,
+                        is_active=setting.is_active,
+                        default_setting_id=setting.id
+                    )
+                    session.add(setting_instance)
+
+                if camera.lpr_ids:
+                    result = await session.execute(select(DBLpr)
+                        .where(DBLpr.id.in_(camera.lpr_ids))
+                    )
+                    lprs = result.scalars().all()
+                    if len(lprs) != len(camera.lpr_ids):
+                        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
+                    db_camera.lprs.extend(lprs)
+
                 await session.commit()
                 await session.refresh(db_camera)
                 return db_camera
@@ -289,20 +334,133 @@ class CameraOperation(CrudOperation):
         async with self.db_session as session:
             db_camera = await self.get_camera(camera_id)
 
-            update_data = camera.dict(exclude_unset=True)
             try:
+                update_data = camera.dict(exclude_unset=True)
                 if "gate_id" in update_data:
                     gate_id = update_data["gate_id"]
                     await GateOperation(session).get_gate(gate_id)
+                    db_camera.gate_id = gate_id
+
+                if "lpr_ids" in update_data:
+                    result = await session.execute(
+                        select(DBLpr).where(DBLpr.id.in_(update_data["lpr_ids"]))
+                    )
+                    lprs = result.scalars().all()
+                    if len(lprs) != len(update_data["lpr_ids"]):
+                        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
+                    db_camera.lprs = lprs
 
                 for key, value in update_data.items():
-                    setattr(db_camera, key, value)
-                    await session.commit()
-                    await session.refresh(db_camera)
-                    return db_camera
+                    if key not in ["gate_id", "lpr_ids"]:
+                        setattr(db_camera, key, value)
+
+                await session.commit()
+                await session.refresh(db_camera)
+                return db_camera
             except SQLAlchemyError as error:
                     await session.rollback()
                     raise HTTPException(status.HTTP_409_CONFLICT, f"{error}: Could not update camera")
+
+    async def update_camera_setting(
+            self, camera_id: int, setting_id: int, setting_update: CameraSettingInstanceUpdate
+        ):
+            async with self.db_session as session:
+                # Fetch the setting instance
+                query = await session.execute(
+                    select(DBCameraSettingInstance)
+                    .where(
+                        DBCameraSettingInstance.camera_id == camera_id,
+                        DBCameraSettingInstance.id == setting_id
+                    )
+                )
+                setting_instance = query.scalar_one_or_none()
+                if setting_instance is None:
+                    raise HTTPException(
+                        status_code=404, detail="Setting not found for this camera"
+                    )
+
+                try:
+                    update_data = setting_update.dict(exclude_unset=True)
+                    for key, value in update_data.items():
+                        setattr(setting_instance, key, value)
+                    await session.commit()
+                    await session.refresh(setting_instance)
+                    return setting_instance
+                except SQLAlchemyError as error:
+                    await session.rollback()
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT, f"{error}: Could not update camera setting"
+                    )
+
+    async def add_camera_setting(
+        self, camera_id: int, setting_create: CameraSettingInstanceCreate
+    ):
+        async with self.db_session as session:
+            # Check if setting with the same name already exists for this camera
+            exists_query = await session.execute(
+                select(DBCameraSettingInstance)
+                .where(
+                    DBCameraSettingInstance.camera_id == camera_id,
+                    DBCameraSettingInstance.name == setting_create.name
+                )
+            )
+            if exists_query.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=400,
+                    detail="Setting with this name already exists for this camera"
+                )
+
+            try:
+                # Optionally, check if a default setting exists with this name
+                default_setting_query = await session.execute(
+                    select(DBCameraSetting).where(DBCameraSetting.name == setting_create.name)
+                )
+                default_setting = default_setting_query.scalar_one_or_none()
+
+                setting_instance = DBCameraSettingInstance(
+                    camera_id=camera_id,
+                    name=setting_create.name,
+                    description=setting_create.description,
+                    value=setting_create.value,
+                    setting_type=setting_create.setting_type,
+                    is_active=setting_create.is_active,
+                    default_setting_id=default_setting.id if default_setting else None
+                )
+                session.add(setting_instance)
+                await session.commit()
+                await session.refresh(setting_instance)
+                return setting_instance
+            except SQLAlchemyError as error:
+                await session.rollback()
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT, f"{error}: Could not add camera setting"
+                )
+
+    async def remove_camera_setting(self, camera_id: int, setting_id: int):
+        async with self.db_session as session:
+            # Fetch the setting instance
+            query = await session.execute(
+                select(DBCameraSettingInstance)
+                .where(
+                    DBCameraSettingInstance.camera_id == camera_id,
+                    DBCameraSettingInstance.id == setting_id
+                )
+            )
+            setting_instance = query.scalar_one_or_none()
+            if setting_instance is None:
+                raise HTTPException(
+                    status_code=404, detail="Setting not found for this camera"
+                )
+
+            try:
+                await session.delete(setting_instance)
+                await session.commit()
+                return setting_instance
+            except SQLAlchemyError as error:
+                await session.rollback()
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT, f"{error}: Could not remove camera setting"
+                )
 
     async def delete_camera(self, camera_id: int):
         async with self.db_session as session:
@@ -318,16 +476,105 @@ class CameraOperation(CrudOperation):
                     raise HTTPException(status.HTTP_409_CONFLICT, f"{error}: Could not delete camera")
 
 
+class LprSettingOperation(CrudOperation):
+    def __init__(self, db_session: AsyncSession) -> None:
+        super().__init__(db_session)
+
+    async def get_setting(self, setting_id: int):
+        async with self.db_session as session:
+            query = await session.execute(
+                select(DBLprSetting).where(DBLprSetting.id == setting_id)
+            )
+            setting = query.unique().scalar_one_or_none()
+            if setting is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LPR setting not found")
+            return setting
+
+    async def get_setting_by_name(self, name: str):
+        async with self.db_session as session:
+            query = await session.execute(select(DBLprSetting).where(DBLprSetting.name == name))
+            setting = query.unique().scalar_one_or_none()
+            return setting
+
+    async def get_settings(self, skip: int=0, limit: int=10):
+        async with self.db_session as session:
+            query = await session.execute(
+                select(DBLprSetting).offset(skip).limit(limit)
+            )
+            return query.scalars().all()
+
+    async def create_setting(self, setting):
+        async with self.db_session as session:
+            try:
+                new_setting = DBLprSetting(
+                name=setting.name,
+                description=setting.description,
+                value=setting.value,
+                setting_type=setting.setting_type
+                )
+                session.add(new_setting)
+                await session.commit()
+                await session.refresh(new_setting)
+                # result = await session.execute(
+                #         select(DBLprSetting)
+                #         .where(DBLprSetting.id == new_setting.id)
+                #     )
+                # new_setting = result.scalars().first()
+                return new_setting
+            except SQLAlchemyError as error:
+                await session.rollback()
+                raise HTTPException(status.HTTP_409_CONFLICT, f"{error}: Could not create setting")
+
+    async def update_setting(self, setting_id: int, setting):
+        async with self.db_session as session:
+            db_setting = await self.get_setting(setting_id)
+            try:
+                db_setting = await session.merge(db_setting)
+                update_data = setting.dict(exclude_unset=True)
+                for key, value in update_data.items():
+                    setattr(db_setting, key, value)
+                await session.commit()
+                await session.refresh(db_setting)
+                return db_setting
+            except SQLAlchemyError as error:
+                await session.rollback()
+                raise HTTPException(status.HTTP_409_CONFLICT, f"{error}: Could not update setting")
+
+    async def delete_setting(self, setting_id: int):
+        async with self.db_session as session:
+            db_setting = await self.get_setting(setting_id)
+            try:
+                db_setting = await session.merge(db_setting)
+                await session.delete(db_setting)
+                await session.commit()
+                return db_setting
+            except SQLAlchemyError as error:
+                await session.rollback()
+                raise HTTPException(status.HTTP_409_CONFLICT, f"{error}: Could not delete setting")
+
+
+
+
 class LprOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session)
 
     async def get_lpr(self, lpr_id: int):
         async with self.db_session as session:
-            query = await session.execute(select(DBLpr).where(DBLpr.id == lpr_id).options(selectinload(DBLpr.clients)))
-            lpr =  query.unique().scalars().first()
+            query = await session.execute(
+                select(DBLpr).where(DBLpr.id == lpr_id)
+            )
+            lpr = query.unique().scalar_one_or_none()
             if lpr is None:
-                raise HTTPException(status.HTTP_404_NOT_FOUND, detail="lpr not found")
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LPR not found")
+            return lpr
+
+    async def get_lpr_by_name(self, name: str):
+        async with self.db_session as session:
+            query = await session.execute(select(DBLpr).where(DBLpr.name == name))
+            lpr = query.unique().scalar_one_or_none()
+            if lpr is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LPR not found")
             return lpr
 
     async def get_lprs(self, skip: int = 0, limit: int = 10):
@@ -340,20 +587,33 @@ class LprOperation(CrudOperation):
             try:
                 new_lpr = DBLpr(
                     name=lpr.name,
-                    description=lpr.description,
-                    value=lpr.value,
-                    lpr_type=lpr.lpr_type
+                    ip=lpr.ip,
+                    port=lpr.port,
+                    auth_token=lpr.auth_token,
+                    latitude=lpr.latitude,
+                    longitude=lpr.longitude,
+                    description=lpr.description
                 )
                 session.add(new_lpr)
+                await session.flush()
+
+                result = await session.execute(select(DBLprSetting))
+                default_settings = result.scalars().all()
+                for setting in default_settings:
+                    setting_instance = DBLprSettingInstance(
+                        lpr_id=new_lpr.id,
+                        name=setting.name,
+                        description=setting.description,
+                        value=setting.value,
+                        setting_type=setting.setting_type,
+                        is_active=setting.is_active,
+                        default_setting_id=setting.id
+                    )
+                    session.add(setting_instance)
                 await session.commit()
                 await session.refresh(new_lpr)
-                result = await session.execute(
-                    select(DBLpr)
-                    .where(DBLpr.id == new_lpr.id)
-                    .options(selectinload(DBLpr.clients))  # Use selectinload to eager-load the relationship
-                )
-                new_lpr = result.scalars().first()
                 return new_lpr
+
             except SQLAlchemyError as e:
                 await session.rollback()
                 raise HTTPException(status_code=400, detail=str(e))
@@ -363,14 +623,117 @@ class LprOperation(CrudOperation):
             db_lpr = await self.get_lpr(lpr_id)
             update_data = lpr.dict(exclude_unset=True)
             try:
+
                 for key, value in lpr.dict(exclude_unset=True).items():
                     setattr(db_lpr, key, value)
+
                 await session.commit()
                 await session.refresh(db_lpr)
                 return db_lpr
             except SQLAlchemyError as e:
                 await session.rollback()
                 raise HTTPException(status_code=400, detail=str(e))
+
+    async def update_lpr_setting(
+            self, lpr_id: int, setting_id: int, setting_update: LprSettingInstanceUpdate
+        ):
+            async with self.db_session as session:
+                # Fetch the setting instance
+                query = await session.execute(
+                    select(DBLprSettingInstance)
+                    .where(
+                        DBLprSettingInstance.lpr_id == lpr_id,
+                        DBLprSettingInstance.id == setting_id
+                    )
+                )
+                setting_instance = query.scalar_one_or_none()
+                if setting_instance is None:
+                    raise HTTPException(
+                        status_code=404, detail="Setting not found for this lpr"
+                    )
+
+                try:
+                    update_data = setting_update.dict(exclude_unset=True)
+                    for key, value in update_data.items():
+                        setattr(setting_instance, key, value)
+                    await session.commit()
+                    await session.refresh(setting_instance)
+                    return setting_instance
+                except SQLAlchemyError as error:
+                    await session.rollback()
+                    raise HTTPException(
+                        status.HTTP_409_CONFLICT, f"{error}: Could not update lpr setting"
+                    )
+
+    async def add_lpr_setting(
+        self, lpr_id: int, setting_create: LprSettingInstanceCreate
+    ):
+        async with self.db_session as session:
+            # Check if setting with the same name already exists for this camera
+            exists_query = await session.execute(
+                select(DBLprSettingInstance)
+                .where(
+                    DBLprSettingInstance.lpr_id == lpr_id,
+                    DBLprSettingInstance.name == setting_create.name
+                )
+            )
+            if exists_query.scalar_one_or_none():
+                raise HTTPException(
+                    status_code=400,
+                    detail="Setting with this name already exists for this lpr"
+                )
+
+            try:
+                # Optionally, check if a default setting exists with this name
+                default_setting_query = await session.execute(
+                    select(DBLprSetting).where(DBLprSetting.name == setting_create.name)
+                )
+                default_setting = default_setting_query.scalar_one_or_none()
+
+                setting_instance = DBLprSettingInstance(
+                    lpr_id=lpr_id,
+                    name=setting_create.name,
+                    description=setting_create.description,
+                    value=setting_create.value,
+                    setting_type=setting_create.setting_type,
+                    is_active=setting_create.is_active,
+                    default_setting_id=default_setting.id if default_setting else None
+                )
+                session.add(setting_instance)
+                await session.commit()
+                await session.refresh(setting_instance)
+                return setting_instance
+            except SQLAlchemyError as error:
+                await session.rollback()
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT, f"{error}: Could not add lpr setting"
+                )
+
+    async def remove_lpr_setting(self, lpr_id: int, setting_id: int):
+        async with self.db_session as session:
+            # Fetch the setting instance
+            query = await session.execute(
+                select(DBLprSettingInstance)
+                .where(
+                    DBLprSettingInstance.lpr_id == lpr_id,
+                    DBLprSettingInstance.id == setting_id
+                )
+            )
+            setting_instance = query.scalar_one_or_none()
+            if setting_instance is None:
+                raise HTTPException(
+                    status_code=404, detail="Setting not found for this lpr"
+                )
+
+            try:
+                await session.delete(setting_instance)
+                await session.commit()
+                return setting_instance
+            except SQLAlchemyError as error:
+                await session.rollback()
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT, f"{error}: Could not remove lpr setting"
+                )
 
     async def delete_lpr(self, lpr_id: int):
         async with self.db_session as session:
@@ -382,46 +745,3 @@ class LprOperation(CrudOperation):
             except SQLAlchemyError as e:
                 await session.rollback()
                 raise HTTPException(status_code=400, detail=str(e))
-
-
-class ClientOperation(CrudOperation):
-    def __init__(self, db_session: AsyncSession) -> None:
-        super().__init__(db_session)
-
-    async def create_client(self, client):
-        async with self.db_session as session:
-            db_lpr = await LprOperation(session).get_lpr(client.lpr_id)
-            try:
-                db_lpr = await session.merge(db_lpr)
-                # Create the new Client instance
-                new_client = DBClient(
-                    ip=client.ip,
-                    port=client.port,
-                    auth_token=client.auth_token,
-                    lpr_id=db_lpr.id
-                )
-
-                # Assign cameras to the client
-                if client.camera_ids:
-                    # Fetch the camera objects
-                    camera_result = await session.execute(select(DBCamera).where(DBCamera.id.in_(client.camera_ids)))
-                    cameras = camera_result.unique().scalars().all()
-
-                    # Ensure all requested cameras are found
-                    if len(cameras) != len(client.camera_ids):
-                        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more cameras not found")
-                    new_client.cameras.extend(cameras)
-
-                # Add the client to the database
-                session.add(new_client)
-                await session.commit()
-                await session.refresh(new_client)
-                factory = connect_to_server(server_ip=new_client.ip, port=new_client.port, auth_token=new_client.auth_token)
-                await connection_manager.add_connection(new_client.id, factory)
-                if not reactor.running:
-                    reactor_thread = threading.Thread(target=reactor.run, args=(False,), daemon=True)
-                    reactor_thread.start()
-                return new_client
-            except SQLAlchemyError as e:
-                await session.rollback()
-                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
