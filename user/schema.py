@@ -25,7 +25,6 @@ class UserUpdate(BaseModel):
     phone_number: Optional[str] = None
     user_type: Optional[UserType] = None
     is_active: Optional[bool] = None
-    profile_image: Optional[str] = None
 
 class UserInDB(UserBase):
     id: int

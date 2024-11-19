@@ -49,14 +49,14 @@ class UserOperation:
             result = await session.execute(
                 select(DBUser).where(DBUser.id==user_id)
             )
-            user = result.unique().scalars().first()
+            user = result.unique().scalar_one_or_none()
             if user is None:
                 logger.error(f"User with ID {user_id} not found")
                 raise HTTPException(status.HTTP_404_NOT_FOUND, "user not found!")
             logger.info(f"Retrieved user data: {user}")
             return user
 
-    async def create_user(self, user: UserCreate, profile_image: Optional[UploadFile]=None) -> DBUser:
+    async def create_user(self, user: UserCreate) -> DBUser:
         logger.info("Attempting to create a new user")
         hashed_password = get_password_hash(user.password)
         async with self.db_session as session:
@@ -64,7 +64,7 @@ class UserOperation:
                 select(DBUser).where(
                     or_(DBUser.username == user.username, DBUser.email == user.email)
                 ))
-            db_user = query.unique().scalars().first()
+            db_user = query.unique().scalar_one_or_none()
             if db_user:
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, "username/email already exists.")
 
@@ -78,11 +78,6 @@ class UserOperation:
                 session.add(new_user)
                 await session.commit()
                 await session.refresh(new_user)
-                if profile_image:
-                    self._validate_and_upload_image(profile_image, new_user)
-                session.add(new_user)
-                await session.commit()
-                await session.refresh(new_user)
                 logger.info(f"User created successfully with ID: {new_user.id}")
                 return new_user
             except SQLAlchemyError as error:
@@ -92,23 +87,18 @@ class UserOperation:
 
 
 
-    async def update_user(self, user_id: int, user_update: dict, profile_image:Optional[UploadFile]=None):
+    async def update_user(self, user_id: int, user_update: UserUpdate):
         async with self.db_session as session:
-            user = await self.get_user(user_id)
+            db_user = await self.get_user(user_id)
             try:
+                db_user = session.merge(db_user)
+                for key, value in user_update.dict(exclude_unset=True).items():
+                    setattr(db_user, key, value)
 
-                for key, value in user_update.items():
-                    setattr(user, key, value)
-
-                if profile_image:
-                    if user.profile_image:
-                        old_filename = user.profile_image.split("/")[-1]
-                        delete_profile_image(old_filename)
-                    self._validate_and_upload_image(profile_image, user)
-                session.add(user)
+                session.add(db_user)
                 await session.commit()
-                await session.refresh(user)
-                return user
+                await session.refresh(db_user)
+                return db_user
             except Exception as e:
                 await session.rollback()
                 logger.error(f"Failed to update user {user_id}: {e}")
@@ -120,15 +110,12 @@ class UserOperation:
 
     async def delete_user(self, user_id: int):
         async with self.db_session as session:
-            user = await self.get_user(user_id)
+            db_user = await self.get_user(user_id)
             try:
-                if user.profile_image:
-                    old_filename = user.profile_image.split("/")[-1].split("?")[0]
-                    delete_profile_image(old_filename)
-
-                await session.delete(user)
+                db_user = session.merge(db_user)
+                await session.delete(db_user)
                 await session.commit()
-                return user
+                return db_user
             except SQLAlchemyError as error:
                 await session.rollback()
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Could not delete user")
@@ -151,3 +138,38 @@ class UserOperation:
             except:
                 await session.rollback()
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Could not update user status")
+
+
+    async def upload_profile_image(self, user_id: int, profile_image: UploadFile):
+
+            user = await self.get_user(user_id)
+            # Validate the image
+            validate_image_extension(profile_image.filename)
+            validate_image_content_type(profile_image.content_type)
+            validate_image_size(profile_image)
+
+            # Read the file data
+            file_data = await profile_image.read()
+
+            # Delete old profile image if exists
+            # if user.profile_image:
+            #     old_filename = user.profile_image.split("/")[-1].split("?")[0]
+            #     delete_profile_image(old_filename)
+
+            # Upload new profile image
+            image_url = upload_profile_image(file_data, user.id, profile_image.filename, profile_image.content_type)
+            user.profile_image = image_url
+
+            try:
+                async with self.db_session as session:
+                    session.add(user)
+                    await session.commit()
+                    await session.refresh(user)
+                return user
+            except SQLAlchemyError as error:
+                await self.db_session.rollback()
+                logger.error(f"Failed to upload profile image for user {user_id}: {error}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Failed to upload profile image."
+                )

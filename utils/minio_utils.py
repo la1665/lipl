@@ -1,5 +1,6 @@
 import io
 import base64
+from fastapi import HTTPException, status
 from minio import S3Error
 
 from minio_db.engine import minio_client
@@ -31,7 +32,10 @@ def upload_profile_image(file_data: bytes, user_id: int, filename: str, content_
 
     except S3Error as error:
         print(f"Error uploading profile image: {error}")
-        raise
+        raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to upload profile image."
+            )
 
 
 def delete_profile_image(filename: str) -> None:

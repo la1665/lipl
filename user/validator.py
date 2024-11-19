@@ -1,5 +1,5 @@
 from fastapi import UploadFile, HTTPException, status
-from typing import List
+from typing import List, Optional
 import imghdr
 
 # Define allowed image MIME types and extensions
@@ -10,33 +10,35 @@ ALLOWED_EXTENSIONS = ["jpeg", "jpg", "png"]
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
-def validate_image_extension(filename: str):
+def validate_image_extension(filename: Optional[str]=None):
     """
     Validates the file extension of the uploaded image.
 
     :param filename: Name of the uploaded file
     :raises HTTPException: If the file extension is not allowed
     """
-    extension = filename.split(".")[-1].lower()
-    if extension not in ALLOWED_EXTENSIONS:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid file extension '.{extension}'. Allowed extensions: {ALLOWED_EXTENSIONS}",
-        )
+    if filename:
+        extension = filename.split(".")[-1].lower()
+        if extension not in ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid file extension '.{extension}'. Allowed extensions: {ALLOWED_EXTENSIONS}",
+            )
 
 
-def validate_image_content_type(content_type: str):
+def validate_image_content_type(content_type: Optional[str]=None):
     """
     Validates the MIME type of the uploaded image.
 
     :param content_type: MIME type of the uploaded file
     :raises HTTPException: If the MIME type is not allowed
     """
-    if content_type not in ALLOWED_MIME_TYPES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid content type '{content_type}'. Allowed types: {ALLOWED_MIME_TYPES}",
-        )
+    if content_type:
+        if content_type not in ALLOWED_MIME_TYPES:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Invalid content type '{content_type}'. Allowed types: {ALLOWED_MIME_TYPES}",
+            )
 
 
 def validate_image_size(file: UploadFile):
