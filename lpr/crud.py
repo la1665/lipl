@@ -404,6 +404,7 @@ class CameraOperation(CrudOperation):
                         .where(DBLpr.id.in_(camera.lpr_ids))
                     )
                     lprs =  query.unique().scalars().all()
+                    logger.critical(f"found lprs are: {[lpr.name for lpr in lprs]}")
                     if len(lprs) != len(camera.lpr_ids):
                         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
                     db_camera.lprs.extend(lprs)
