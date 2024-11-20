@@ -359,11 +359,11 @@ class CameraOperation(CrudOperation):
             }
 
     async def create_camera(self, camera: CameraCreate):
-        # async with self.db_session as session:
-            session = self.db_session
+        async with self.db_session as session:
+            # session = self.db_session
             db_gate = await GateOperation(session).get_gate(camera.gate_id)
             try:
-                # db_gate = session.merge(db_gate)
+                db_gate = await session.merge(db_gate)
                 # if camera.setting_ids:
                 #     result = await session.execute(select(DBCameraSetting).where(DBCameraSetting.id.in_(camera.setting_ids)))
                 #     settings = result.scalars().all()
