@@ -351,7 +351,7 @@ class CameraOperation(CrudOperation):
         async with self.db_session as session:
             db_gate = await GateOperation(session).get_gate(camera.gate_id)
             try:
-                db_gate = session.merge(db_gate)
+                # db_gate = session.merge(db_gate)
                 # if camera.setting_ids:
                 #     result = await session.execute(select(DBCameraSetting).where(DBCameraSetting.id.in_(camera.setting_ids)))
                 #     settings = result.scalars().all()
@@ -364,10 +364,10 @@ class CameraOperation(CrudOperation):
                     latitude=camera.latitude,
                     longitude=camera.longitude,
                     description=camera.description,
-                    gate_id=db_gate.id
+                    gate_id=camera.gate_id
                 )
                 session.add(db_camera)
-                session.flush()
+                await session.flush()
 
                 result = await session.execute(select(DBCameraSetting))
                 default_settings = result.scalars().all()
