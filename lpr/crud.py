@@ -319,7 +319,7 @@ class CameraOperation(CrudOperation):
             )
             camera =  result.unique().scalar_one_or_none()
             if camera is None:
-                raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Building not found")
+                raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Camera not found")
             return camera
 
     async def get_cameras(self, page: int=1, page_size: int=10):

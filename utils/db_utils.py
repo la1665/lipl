@@ -10,11 +10,51 @@ from user.model import DBUser, UserType
 from sqlalchemy.ext.asyncio import AsyncSession
 from db.engine import get_db
 from lpr.model import SettingType
-from lpr.crud import SettingOperation, LprSettingOperation
-from lpr.schema import CameraSettingCreate, LprSettingCreate
+from lpr.crud import BuildingOperation, CameraOperation, GateOperation, LprOperation, SettingOperation, LprSettingOperation
+from lpr.schema import BuildingCreate, CameraCreate, CameraSettingCreate, GateCreate, LprCreate, LprSettingCreate
 
 logger = logging.getLogger(__name__)
 
+default_buildings = [
+    {
+      "name": "central",
+      "latitude": "98.0.0",
+      "longitude": "98.0.0",
+      "description": "شعبه مرکزی"
+    },
+    {
+      "name": "amol",
+      "latitude": "98.0.1",
+      "longitude": "98.0.1",
+      "description": "شعبه آمل"
+    }
+]
+default_gates = [
+    {
+      "name": "گیت اصلی ساختمان مرکزی",
+      "description": "گیت اصلی شعبه مرکزی تهران",
+      "gate_type": 2,
+      "building_id": 1
+    },
+    {
+      "name": "گیت ورودی",
+      "description": "گیت ورودی شعبه مرکزی",
+      "gate_type": 0,
+      "building_id": 1
+    },
+    {
+      "name": "گیت خروجی",
+      "description": "گیت خروجی سازمان مرکزی",
+      "gate_type": 1,
+      "building_id": 1
+    },
+    {
+      "name": "گیت ورودی/خروجی شعبه",
+      "description": "گیت اصلی شعبه آمل",
+      "gate_type": 2,
+      "building_id": 2
+    }
+]
 
 default_lpr_settings = [
     {"name": "deep_plate_width_1", "description": "عرض تشخیص پلاک اول", "value": "640", "setting_type": SettingType.INT},
@@ -90,6 +130,99 @@ default_camera_settings = [
     {"name": "type_of_link", "description": "نوع پیوند", "value": "rtsp", "setting_type": SettingType.STRING},
 ]
 
+default_lprs = [
+    {
+      "name": "ماژول پلاک خوان",
+      "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
+      "ip": "127.0.0",
+      "port": 8080,
+      "auth_token": "1",
+      "latitude": "98.0.0",
+      "longitude": "98.0.0"
+    },
+    {
+      "name": "ماژول پلاک خوان",
+      "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
+      "ip": "127.0.0",
+      "port": 8080,
+      "auth_token": "2",
+      "latitude": "98.0.0",
+      "longitude": "98.0.0"
+    },
+    {
+      "name": "ماژول پلاک خوان",
+      "description": "پلاک خوان دوربین گیت۱ برای ورودی",
+      "ip": "127.0.0",
+      "port": 8080,
+      "auth_token": "3",
+      "latitude": "98.0.0",
+      "longitude": "98.0.0"
+    },
+    {
+      "name": "ماژول پلاک خوان",
+      "description": "پلاک خوان دوربین گیت۱ برای خروجی",
+      "ip": "127.0.0",
+      "port": 8080,
+      "auth_token": "4",
+      "latitude": "98.0.0",
+      "longitude": "98.0.0"
+    },
+    {
+      "name": "ماژول پلاک خوان",
+      "description": "پلاک خوان دوربین گیت۲ برای ورودی/خروجی",
+      "ip": "127.0.0",
+      "port": 8080,
+      "auth_token": "5",
+      "latitude": "98.0.0",
+      "longitude": "98.0.0"
+    },
+    {
+      "name": "ماژول پلاک خوان",
+      "description": "پلاک خوان دوربین گیت۲ برای ورودی/خروجی",
+      "ip": "127.0.0",
+      "port": 8080,
+      "auth_token": "6",
+      "latitude": "98.0.0",
+      "longitude": "98.0.0"
+    },
+]
+
+default_cameras = [
+    {
+      "name": "دوربین ۱",
+      "latitude": "1.0.1",
+      "longitude": "1.0.1",
+      "description": "دوربین اصلی گیت",
+      "gate_id": 1,
+      "lpr_ids": [1,2]
+    },
+    {
+      "name": "دوربین دوم",
+      "latitude": "2.0.1",
+      "longitude": "2.0.1",
+      "description": "دوربین گیت ورود",
+      "gate_id": 2,
+      "lpr_ids": [3]
+    },
+    {
+      "name": "دوربین سوم",
+      "latitude": "3.0.1",
+      "longitude": "3.0.1",
+      "description": "دوربین گیت خروج",
+      "gate_id": 3,
+      "lpr_ids": [4]
+    },
+    {
+      "name": "دوربین گیت اصلی",
+      "latitude": "4.0.1",
+      "longitude": "4.0.1",
+      "description": "دوربین اصلی(ورود/خروج)",
+      "gate_id": 4,
+      "lpr_ids": [5,6]
+    }
+]
+
+
 async def initialize_defaults(db: AsyncSession):
     # Initialize default camera settings
     camera_setting_op = SettingOperation(db)
@@ -118,6 +251,57 @@ async def initialize_defaults(db: AsyncSession):
             )
             await lpr_setting_op.create_setting(setting_obj)
     print("default lpr settings created!!!")
+
+    building_op = BuildingOperation(db)
+    for building in default_buildings:
+        building_obj = BuildingCreate(
+            name=building["name"],
+            latitude=building["latitude"],
+            longitude=building["longitude"],
+            description=building["description"]
+        )
+        await building_op.create_building(building_obj)
+    print("default buildings created!!!")
+
+    gate_op = GateOperation(db)
+    for gate in default_gates:
+        gate_obj = GateCreate(
+            name=gate["name"],
+            description=gate["description"],
+            gate_type=gate["gate_type"],
+            building_id=gate["building_id"]
+        )
+        await gate_op.create_gate(gate_obj)
+    print("default gates created!!!")
+
+
+    lpr_op = LprOperation(db)
+    for lpr in default_lprs:
+        lpr_obj = LprCreate(
+            name=lpr["name"],
+            description=lpr["description"],
+            latitude=lpr["latitude"],
+            longitude=lpr["longitude"],
+            ip=lpr["ip"],
+            port=lpr["port"],
+            auth_token=lpr["auth_token"]
+        )
+        await lpr_op.create_lpr(lpr_obj)
+    print("default lprs created!!!")
+
+    camera_op = CameraOperation(db)
+    for camera in default_cameras:
+        camera_obj = CameraCreate(
+            name=camera["name"],
+            description=camera["description"],
+            latitude=camera["latitude"],
+            longitude=camera["longitude"],
+            gate_id=camera["gate_id"],
+            lpr_ids=camera["lpr_ids"]
+        )
+        await camera_op.create_camera(camera_obj)
+    print("default cameras created!!!")
+
 
 async def create_default_admin(session: AsyncSession):
     pass

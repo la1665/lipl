@@ -55,8 +55,8 @@ async def lifespan(app: FastAPI):
             print("[INFO] Default admin user created")
             await initialize_defaults(session)
         except Exception as error:
-            logger.critical(f"Failed to create default admin user: {error}")
-            print(f"admin error: {error}")
+            logger.critical(f"Failed to create initials: {error}")
+            print(f"error: {error}")
 
 
     # Start the Twisted reactor in a separate thread
