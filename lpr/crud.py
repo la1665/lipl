@@ -6,6 +6,7 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import selectinload
+from sqlalchemy.orm.state import InstanceState
 
 from lpr.model import DBBuilding, DBGate, DBCameraSetting, DBCamera, DBLpr, DBLprSetting, DBLprSettingInstance, DBCameraSettingInstance
 from lpr.schema import (
@@ -401,6 +402,9 @@ class CameraOperation(CrudOperation):
                         .where(DBLpr.id.in_(camera.lpr_ids))
                     )
                     lprs =  query.unique().scalars().all()
+                    for lpr in lprs:
+                        state = InstanceState(lpr)
+                        logger.debug(f" LPR {lpr.id} state: {state}")
                     if len(lprs) != len(camera.lpr_ids):
                         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
                     lprs = [await session.merge(lpr) for lpr in lprs]

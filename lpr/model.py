@@ -168,7 +168,7 @@ class DBCamera(Base):
             'DBLpr',
             secondary=camera_lpr_association,
             back_populates='cameras',
-            lazy="selectin"
+            lazy="joined"
         )
 
     # @property
@@ -246,7 +246,7 @@ class DBLpr(Base):
             'DBCamera',
             secondary=camera_lpr_association,
             back_populates='lprs',
-            lazy="selectin"
+            lazy="joined"
         )
 
     # @property
