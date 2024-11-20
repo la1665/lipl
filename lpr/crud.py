@@ -430,7 +430,7 @@ class CameraOperation(CrudOperation):
                     result = await session.execute(
                         select(DBLpr).where(DBLpr.id.in_(update_data["lpr_ids"]))
                     )
-                    lprs = result.scalars().all()
+                    lprs = result.unique().scalars().all()
                     if len(lprs) != len(update_data["lpr_ids"]):
                         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
                     db_camera.lprs = lprs
