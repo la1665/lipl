@@ -42,6 +42,7 @@ class CrudOperation:
 class BuildingOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session)
+        self.session = db_session
 
     async def get_building(self, building_id: int):
         async with self.db_session as session:
@@ -129,6 +130,7 @@ class BuildingOperation(CrudOperation):
 class GateOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session)
+        self.session = db_session
 
     async def get_gate(self, gate_id: int):
         # async with self.db_session as session:
@@ -223,6 +225,7 @@ class GateOperation(CrudOperation):
 class SettingOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session)
+        self.session = db_session
 
     async def get_setting(self, setting_id: int):
         async with self.db_session as session:
@@ -318,6 +321,7 @@ class SettingOperation(CrudOperation):
 class CameraOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session)
+        self.session = db_session
 
     async def get_camera(self, camera_id: int):
         async with self.db_session as session:
@@ -393,12 +397,13 @@ class CameraOperation(CrudOperation):
                 logger.critical(f"created camera with settings to create camera{db_camera.id}")
 
                 if camera.lpr_ids:
-                    result = await session.execute(select(DBLpr)
+                    query = await session.execute(select(DBLpr)
                         .where(DBLpr.id.in_(camera.lpr_ids))
                     )
-                    lprs = result.scalars().all()
+                    lprs =  query.unique().scalars().all()
                     if len(lprs) != len(camera.lpr_ids):
                         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
+                    lprs = [await session.merge(lpr) for lpr in lprs]
                     db_camera.lprs.extend(lprs)
 
                 await session.commit()
@@ -558,6 +563,7 @@ class CameraOperation(CrudOperation):
 class LprSettingOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session)
+        self.session = db_session
 
     async def get_setting(self, setting_id: int):
         async with self.db_session as session:
@@ -653,6 +659,7 @@ class LprSettingOperation(CrudOperation):
 class LprOperation(CrudOperation):
     def __init__(self, db_session: AsyncSession) -> None:
         super().__init__(db_session)
+        self.session = db_session
 
     async def get_lpr(self, lpr_id: int):
         async with self.db_session as session:
