@@ -194,7 +194,7 @@ default_cameras = [
       "longitude": "1.0.1",
       "description": "دوربین اصلی گیت",
       "gate_id": 1,
-      "lpr_ids": [1,2]
+      "lpr_ids": [1,2],
     },
     {
       "name": "دوربین دوم",
@@ -202,7 +202,7 @@ default_cameras = [
       "longitude": "2.0.1",
       "description": "دوربین گیت ورود",
       "gate_id": 2,
-      "lpr_ids": [3]
+      "lpr_ids": [3],
     },
     {
       "name": "دوربین سوم",
@@ -210,7 +210,7 @@ default_cameras = [
       "longitude": "3.0.1",
       "description": "دوربین گیت خروج",
       "gate_id": 3,
-      "lpr_ids": [4]
+      "lpr_ids": [4],
     },
     {
       "name": "دوربین گیت اصلی",
@@ -218,8 +218,8 @@ default_cameras = [
       "longitude": "4.0.1",
       "description": "دوربین اصلی(ورود/خروج)",
       "gate_id": 4,
-      "lpr_ids": [5,6]
-    }
+      "lpr_ids": [5,6],
+    },
 ]
 
 
