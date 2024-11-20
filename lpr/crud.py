@@ -1,4 +1,5 @@
 import math
+import logging
 from fastapi import HTTPException, status
 from sqlalchemy import func
 from sqlalchemy.future import select
@@ -27,6 +28,11 @@ from lpr.schema import (
 )
 from tcp.tcp_client import connect_to_server
 from tcp.manager import connection_manager
+
+
+logger = logging.getLogger(__name__)
+
+
 
 class CrudOperation:
     def __init__(self, db_session: AsyncSession) -> None:
@@ -125,7 +131,8 @@ class GateOperation(CrudOperation):
         super().__init__(db_session)
 
     async def get_gate(self, gate_id: int):
-        async with self.db_session as session:
+        # async with self.db_session as session:
+            session = self.db_session
             query = await session.execute(select(DBGate)
                 .where(DBGate.id == gate_id)
             )
@@ -348,7 +355,8 @@ class CameraOperation(CrudOperation):
             }
 
     async def create_camera(self, camera: CameraCreate):
-        async with self.db_session as session:
+        # async with self.db_session as session:
+            session = self.db_session
             db_gate = await GateOperation(session).get_gate(camera.gate_id)
             try:
                 # db_gate = session.merge(db_gate)
@@ -382,6 +390,7 @@ class CameraOperation(CrudOperation):
                         default_setting_id=setting.id
                     )
                     session.add(setting_instance)
+                logger.critical(f"created camera with settings to create camera{db_camera.id}")
 
                 if camera.lpr_ids:
                     result = await session.execute(select(DBLpr)
