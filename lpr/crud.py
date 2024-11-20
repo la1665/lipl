@@ -379,6 +379,7 @@ class CameraOperation(CrudOperation):
                     gate_id=camera.gate_id
                 )
                 session.add(db_camera)
+                await session.commit()
                 await session.flush()
 
                 result = await session.execute(select(DBCameraSetting))
@@ -394,6 +395,7 @@ class CameraOperation(CrudOperation):
                         default_setting_id=setting.id
                     )
                     session.add(setting_instance)
+                await session.commit()
                 logger.critical(f"created camera with settings to create camera{db_camera.id}")
 
                 if camera.lpr_ids:
@@ -404,9 +406,10 @@ class CameraOperation(CrudOperation):
                     lprs =  query.unique().scalars().all()
                     if len(lprs) != len(camera.lpr_ids):
                         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
-                    db_camera.lprs = lprs
+                    db_camera.lprs.extend(lprs)
+                    await session.commit()
 
-                await session.commit()
+                # await session.commit()
                 await session.refresh(db_camera)
                 return db_camera
 
