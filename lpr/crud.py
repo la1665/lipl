@@ -419,7 +419,7 @@ class CameraOperation(CrudOperation):
             db_camera = await self.get_camera(camera_id)
 
             try:
-                db_camera = session.merge(db_camera)
+                db_camera = await session.merge(db_camera)
                 update_data = camera.dict(exclude_unset=True)
                 if "gate_id" in update_data:
                     gate_id = update_data["gate_id"]
