@@ -34,9 +34,9 @@ class UserOperation:
         user.profile_image = image_url
 
     async def get_all_users(self):
-        logger.info("Fetching all users")
-        async with self.db_session as session:
-            result = await session.execute(
+            logger.info("Fetching all users")
+        # async with self.db_session as session:
+            result = await self.db_session.execute(
                 select(DBUser)
             )
             users = result.unique().scalars().all()
@@ -44,9 +44,9 @@ class UserOperation:
             return users
 
     async def get_user(self, user_id: int):
-        logger.info(f"Fetching user with ID: {user_id}")
-        async with self.db_session as session:
-            result = await session.execute(
+            logger.info(f"Fetching user with ID: {user_id}")
+        # async with self.db_session as session:
+            result = await self.db_session.execute(
                 select(DBUser).where(DBUser.id==user_id)
             )
             user = result.unique().scalar_one_or_none()
@@ -57,10 +57,10 @@ class UserOperation:
             return user
 
     async def create_user(self, user: UserCreate) -> DBUser:
-        logger.info("Attempting to create a new user")
-        hashed_password = get_password_hash(user.password)
-        async with self.db_session as session:
-            query = await session.execute(
+            logger.info("Attempting to create a new user")
+            hashed_password = get_password_hash(user.password)
+        # async with self.db_session as session:
+            query = await self.db_session.execute(
                 select(DBUser).where(
                     or_(DBUser.username == user.username, DBUser.email == user.email)
                 ))
@@ -75,32 +75,32 @@ class UserOperation:
                     user_type=user.user_type,
                     hashed_password=hashed_password
                 )
-                session.add(new_user)
-                await session.commit()
-                await session.refresh(new_user)
+                self.db_session.add(new_user)
+                await self.db_session.commit()
+                await self.db_session.refresh(new_user)
                 logger.info(f"User created successfully with ID: {new_user.id}")
                 return new_user
             except SQLAlchemyError as error:
-                await session.rollback()
+                await self.db_session.rollback()
                 logger.error(f"Failed to create user: {error}")
                 raise HTTPException(status.HTTP_409_CONFLICT, f"{error}: Could not create user")
 
 
 
     async def update_user(self, user_id: int, user_update: UserUpdate):
-        async with self.db_session as session:
+        # async with self.db_session as session:
             db_user = await self.get_user(user_id)
             try:
-                db_user = await session.merge(db_user)
+                db_user = await self.db_session.merge(db_user)
                 for key, value in user_update.dict(exclude_unset=True).items():
                     setattr(db_user, key, value)
 
-                session.add(db_user)
-                await session.commit()
-                await session.refresh(db_user)
+                self.db_session.add(db_user)
+                await self.db_session.commit()
+                await self.db_session.refresh(db_user)
                 return db_user
             except Exception as e:
-                await session.rollback()
+                await self.db_session.rollback()
                 logger.error(f"Failed to update user {user_id}: {e}")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
@@ -109,19 +109,19 @@ class UserOperation:
 
 
     async def delete_user(self, user_id: int):
-        async with self.db_session as session:
+        # async with self.db_session as session:
             db_user = await self.get_user(user_id)
             try:
-                db_user = await session.merge(db_user)
-                await session.delete(db_user)
-                await session.commit()
+                db_user = await self.db_session.merge(db_user)
+                await self.db_session.delete(db_user)
+                await self.db_session.commit()
                 return db_user
             except SQLAlchemyError as error:
-                await session.rollback()
+                await self.db_session.rollback()
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, f"{error}: Could not delete user")
 
     async def update_user_activate_status(self, user_id:int):
-        async with self.db_session as session:
+        # async with self.db_session as session:
             user = await self.get_user(user_id)
             if user.user_type not in [UserType.USER, UserType.VIEWER]:
                     raise HTTPException(
@@ -131,13 +131,13 @@ class UserOperation:
 
 
             try:
-                user = await session.merge(user)
+                user = await self.db_session.merge(user)
                 user.is_active = not user.is_active
-                await session.commit()
-                await session.refresh(user)
+                await self.db_session.commit()
+                await self.db_session.refresh(user)
                 return user
             except SQLAlchemyError as error:
-                await session.rollback()
+                await self.db_session.rollback()
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=f"Could not update user status: {error}.")
 
 
@@ -162,11 +162,11 @@ class UserOperation:
             user.profile_image = image_name
 
             try:
-                async with self.db_session as session:
-                    session.add(user)
-                    await session.commit()
-                    await session.refresh(user)
-                return user
+                # async with self.db_session as session:
+                    self.db_session.add(user)
+                    await self.db_session.commit()
+                    await self.db_session.refresh(user)
+                    return user
             except SQLAlchemyError as error:
                 await self.db_session.rollback()
                 logger.error(f"Failed to upload profile image for user {user_id}: {error}")

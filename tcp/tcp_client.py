@@ -3,12 +3,15 @@ import json
 import uuid
 import hmac
 import hashlib
-from twisted.internet import protocol, reactor, ssl
 import asyncio
 import socketio
+from twisted.internet import protocol, reactor, ssl
+from sqlalchemy.future import select
 
+from db.engine import async_session
 from tcp.socket_management import emit_to_requested_sids
 from settings import settings
+from traffic.model import Vehicle, Traffic
 # Load environment variables from .env file
 
 # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -115,7 +118,81 @@ class SimpleTCPClient(protocol.Protocol):
         """Efficiently broadcast a message to all subscribed clients for an event."""
         await emit_to_requested_sids(event_name, data)
 
+    # def _handle_plates_data(self, message):
+    #     message_body = message["messageBody"]
+    #     socketio_message = {
+    #         "messageType": "plates_data",
+    #         "timestamp": message_body.get("timestamp"),
+    #         "camera_id": message_body.get("camera_id"),
+    #         "full_image": message_body.get("full_image"),
+    #         "cars": [
+    #             {
+    #                 "plate_number": car.get("plate", {}).get("plate", "Unknown"),
+    #                 "plate_image": car.get("plate", {}).get("plate_image", ""),
+    #                 "ocr_accuracy": car.get("ocr_accuracy", "Unknown"),
+    #                 "vision_speed": car.get("vision_speed", 0.0),
+    #                 "vehicle_class": car.get("vehicle_class", {}),
+    #                 "vehicle_type": car.get("vehicle_type", {}),
+    #                 "vehicle_color": car.get("vehicle_color", {})
+    #             }
+    #             for car in message_body.get("cars", [])
+    #         ]
+    #     }
+    #     reactor.callFromThread(
+    #         asyncio.run, self._broadcast_to_socketio("plates_data", socketio_message)
+    #     )
+
+    async def _store_plate_data(self, plate_data):
+        """
+        Stores the plate data in the database.
+        """
+        async with async_session() as session:
+            for car in plate_data.get("cars", []):
+                plate_number = car.get("plate_number", "Unknown")
+                vehicle = await self._get_or_create_vehicle(session, plate_number, car)
+                traffic_entry = Traffic(
+                    vehicle_id=vehicle.id,
+                    camera_id=plate_data.get("camera_id"),
+                    timestamp=plate_data.get("timestamp"),
+                    ocr_accuracy=car.get("ocr_accuracy", 0.0),
+                    vision_speed=car.get("vision_speed", 0.0)
+                )
+                session.add(traffic_entry)
+            await session.commit()
+
+
+    async def _get_or_create_vehicle(self, session, plate_number, car_data):
+        """
+        Retrieves or creates a vehicle entry in the database.
+        """
+        result = await session.execute(
+            select(Vehicle).where(Vehicle.plate_number == plate_number)
+        )
+        vehicle = result.scalars().first()
+        if not vehicle:
+            vehicle_class_dict = car_data.get("vehicle_class", {})
+            vehicle_type_dict = car_data.get("vehicle_type", {})
+            vehicle_color_dict = car_data.get("vehicle_color", {})
+
+            vehicle_class_value = vehicle_class_dict.get('class') if vehicle_class_dict else None
+            vehicle_type_value = vehicle_type_dict.get('class') if vehicle_type_dict else None
+            vehicle_color_value = vehicle_color_dict.get('class') if vehicle_color_dict else None
+
+            vehicle = Vehicle(
+                plate_number=plate_number,
+                vehicle_class=vehicle_class_value,
+                vehicle_type=vehicle_type_value,
+                vehicle_color=vehicle_color_value,
+            )
+            session.add(vehicle)
+            await session.flush()
+        return vehicle
+
+
     def _handle_plates_data(self, message):
+        """
+        Handles plate data from the server and broadcasts it via Socket.IO.
+        """
         message_body = message["messageBody"]
         socketio_message = {
             "messageType": "plates_data",
@@ -135,6 +212,9 @@ class SimpleTCPClient(protocol.Protocol):
                 for car in message_body.get("cars", [])
             ]
         }
+        reactor.callFromThread(
+            asyncio.run, self._store_plate_data(message_body)
+        )
         reactor.callFromThread(
             asyncio.run, self._broadcast_to_socketio("plates_data", socketio_message)
         )

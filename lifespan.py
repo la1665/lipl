@@ -33,6 +33,48 @@ logger = logging.getLogger(__name__)
 #         reactor_thread = threading.Thread(target=reactor.run, args=(False,), daemon=True)
 #         reactor_thread.start()
 
+async def initialize_lpr_connections():
+    """
+    Initialize TCP clients for all LPRs and store their factory in the connection manager.
+    """
+    logger.info("Initializing LPR connections...")
+    print("Initializing LPR connections...")
+    try:
+        async with async_session() as session:
+            result = await session.execute(select(DBLpr))
+            lprs = result.scalars().unique().all()
+            logger.info(f"Found {len(lprs)} LPRs for initialization.")
+            print(f"Found {len(lprs)} LPRs for initialization.")
+
+            for lpr in lprs:
+                factory = connect_to_server(
+                    server_ip=lpr.ip,
+                    port=lpr.port,
+                    auth_token=lpr.auth_token
+                )
+                await connection_manager.add_connection(lpr.id, factory)
+                logger.info(f"Initialized connection for LPR with ID: {lpr.id}, IP: {lpr.ip}, Port: {lpr.port}")
+                print(f"Initialized connection for LPR with ID: {lpr.id}, IP: {lpr.ip}, Port: {lpr.port}")
+    except Exception as error:
+        logger.error(f"Failed to initialize LPR connections: {error}")
+        print(f"Failed to initialize LPR connections: {error}")
+
+def start_reactor():
+    """
+    Start the Twisted reactor in a separate thread.
+    """
+    try:
+        logger.info("Starting Twisted reactor...")
+        print("Starting Twisted reactor...")
+        reactor.run(installSignalHandlers=False)
+    except Exception as error:
+        logger.error(f"Error starting Twisted reactor: {error}")
+        print(f"Error starting Twisted reactor: {error}")
+
+def stop_reactor():
+    if reactor.running:
+        print("[INFO] Stopping the Twisted reactor...")
+        reactor.stop()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -60,9 +102,11 @@ async def lifespan(app: FastAPI):
 
 
     # Start the Twisted reactor in a separate thread
-    def start_reactor():
-        reactor.run(installSignalHandlers=False)
-
+    reactor_thread = threading.Thread(target=start_reactor, daemon=True)
+    reactor_thread.start()
+    await initialize_lpr_connections()
+    await asyncio.sleep(5)
+    logger.info("TCP clients initialized and authenticated")
     # Initialize TCP clients for all LPRs
     # async def initialize_tcp_clients():
     #     """
@@ -96,15 +140,11 @@ async def lifespan(app: FastAPI):
     # logger.info("TCP clients initialized")
     # print("[INFO] TCP clients initialized")
     yield
+    logger.info("Application lifespan ending - cleaning up resources")
     # Clean up resources
     await engine.dispose()
     logger.info("Database connection closed")
     # Close all TCP clients
-    # def stop_reactor():
-    #     if reactor.running:
-    #         print("[INFO] Stopping the Twisted reactor...")
-    #         reactor.stop()
-
-    # reactor.callFromThread(stop_reactor)
+    reactor.callFromThread(stop_reactor)
 
     print("[INFO] Lifespan ended")

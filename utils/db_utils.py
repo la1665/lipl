@@ -134,57 +134,48 @@ default_lprs = [
     {
       "name": "ماژول پلاک خوان۱",
       "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
-      "ip": "127.0.0",
-      "port": 8080,
-      "auth_token": "1",
+      "ip": "185.81.99.23",
+      "port": 45,
+      "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
       "longitude": "98.0.0"
     },
     {
       "name": "ماژول پلاک خوان۲",
       "description": "پلاک خوان دوربین گیت۱ برای ورودی/خروجی",
-      "ip": "127.0.0",
-      "port": 8080,
-      "auth_token": "2",
+      "ip": "185.81.99.23",
+      "port": 46,
+      "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
       "longitude": "98.0.0"
     },
     {
       "name": "ماژول پلاک خوان۳",
       "description": "پلاک خوان دوربین گیت۱ برای ورودی",
-      "ip": "127.0.0",
-      "port": 8080,
-      "auth_token": "3",
+      "ip": "185.81.99.23",
+      "port": 47,
+      "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
       "longitude": "98.0.0"
     },
     {
       "name": "ماژول پلاک خوان۴",
       "description": "پلاک خوان دوربین گیت۱ برای خروجی",
-      "ip": "127.0.0",
-      "port": 8080,
-      "auth_token": "4",
+      "ip": "185.81.99.23",
+      "port": 48,
+      "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
       "longitude": "98.0.0"
     },
     {
       "name": "ماژول پلاک خوان۵",
       "description": "پلاک خوان دوربین گیت۲ برای ورودی/خروجی",
-      "ip": "127.0.0",
-      "port": 8080,
-      "auth_token": "5",
+      "ip": "185.81.99.23",
+      "port": 49,
+      "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
       "longitude": "98.0.0"
-    },
-    {
-      "name": "ماژول پلاک خوان۶",
-      "description": "پلاک خوان دوربین گیت۲ برای ورودی/خروجی",
-      "ip": "127.0.0",
-      "port": 8080,
-      "auth_token": "6",
-      "latitude": "98.0.0",
-      "longitude": "98.0.0"
-    },
+    }
 ]
 
 default_cameras = [
@@ -218,7 +209,7 @@ default_cameras = [
       "longitude": "4.0.1",
       "description": "دوربین اصلی(ورود/خروج)",
       "gate_id": 4,
-      "lpr_ids": [5,6],
+      "lpr_ids": [5],
     },
 ]
 

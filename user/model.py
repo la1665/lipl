@@ -33,3 +33,4 @@ class DBUser(Base):
     updated_at = Column(
         DateTime, nullable=False, default=func.now(), onupdate=func.now()
     )
+    vehicles = relationship("Vehicle", back_populates="owner")

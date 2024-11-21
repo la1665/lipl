@@ -1,5 +1,7 @@
+from typing import AsyncGenerator
 from sqlalchemy import inspect
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.declarative import declarative_base
 
 from settings import settings
@@ -26,10 +28,6 @@ def table_exists(engine, table_name):
     return table_name in inspector.get_table_names()
 
 
-async def get_db():
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
-    # db = async_session()
-        try:
-            yield session
-        finally:
-            await session.close()
+        yield session
