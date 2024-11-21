@@ -194,14 +194,17 @@ class GateOperation(CrudOperation):
         async with self.db_session as session:
             db_gate = await self.get_gate(gate_id)
             try:
-                db_gate = await session.merge(db_gate)
+                # db_gate = await session.merge(db_gate)
                 update_data = gate.dict(exclude_unset=True)
                 if "building_id" in update_data:
                     building_id = update_data["building_id"]
                     await BuildingOperation(session).get_building(building_id)
+                    db_gate.building_id = building_id
 
                 for key, value in update_data.items():
-                    setattr(db_gate, key, value)
+                    if key != "building_id"
+                        setattr(db_gate, key, value)
+
                 await session.commit()
                 await session.refresh(db_gate)
                 return db_gate
