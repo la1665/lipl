@@ -19,7 +19,9 @@ ca_cert_path = os.getenv("CA_CERT_PATH","/app/certs/ca.crt")
 class SimpleTCPClient(protocol.Protocol):
     def __init__(self):
         self.auth_message_id = None
-        # self.loop = loop
+        self.incomplete_data = ""
+        self.authenticated = False  # Track authentication status locally
+
 
     def connectionMade(self):
         """
@@ -28,17 +30,19 @@ class SimpleTCPClient(protocol.Protocol):
         """
         print(f"[INFO] Connected to {self.transport.getPeer()}")
         self.authenticate()
-        self.incomplete_data = ""
+
 
     def authenticate(self):
         """
         Sends an authentication message to the server.
         """
-        self.auth_message_id = str(uuid.uuid4())
-        auth_message = self._create_auth_message(self.auth_message_id, self.factory.auth_token)
-        self._send_message(auth_message)
-        self.factory.authenticated = False
-        print(f"[INFO] Authentication message sent with ID: {self.auth_message_id}")
+        try:
+            self.auth_message_id = str(uuid.uuid4())
+            auth_message = self._create_auth_message(self.auth_message_id, self.factory.auth_token)
+            self._send_message(auth_message)
+            print(f"[INFO] Authentication message sent with ID: {self.auth_message_id}")
+        except:
+            print("Not Accesptable")
 
     def _create_auth_message(self, message_id, token):
         """
@@ -54,8 +58,11 @@ class SimpleTCPClient(protocol.Protocol):
         """
         Sends a message to the server.
         """
-        print(f"[INFO] Sending message: {message}")
-        self.transport.write((message + '\n').encode('utf-8'))
+        if self.transport and self.transport.connected:
+            print(f"[INFO] Sending message: {message}")
+            self.transport.write((message + '\n').encode('utf-8'))
+        else:
+            print("[ERROR] Transport is not connected. Message not sent.")
 
 
     def dataReceived(self, data):
@@ -74,7 +81,7 @@ class SimpleTCPClient(protocol.Protocol):
         This runs in a separate thread.
         """
         try:
-            message = message.rstrip()
+            # message = message.rstrip()
             parsed_message = json.loads(message)
             message_type = parsed_message.get("messageType")
 
@@ -98,10 +105,11 @@ class SimpleTCPClient(protocol.Protocol):
         reply_to = message["messageBody"].get("replyTo")
         if reply_to == self.auth_message_id:
             print("[INFO] Authentication successful.")
+            self.authenticated = True
             self.factory.authenticated = True
-            self.factory.protocol_instance = self
+            # self.factory.protocol_instance = self
         else:
-            print(f"[INFO] Acknowledgment for message: {reply_to}")
+            print(f"[INFO] Acknowledgment for message: {reply_to} ...")
 
     async def _broadcast_to_socketio(self, event_name, data):
         """Efficiently broadcast a message to all subscribed clients for an event."""
@@ -112,7 +120,7 @@ class SimpleTCPClient(protocol.Protocol):
         socketio_message = {
             "messageType": "plates_data",
             "timestamp": message_body.get("timestamp"),
-            "gate": message_body.get("gate"),
+            "camera_id": message_body.get("camera_id"),
             "full_image": message_body.get("full_image"),
             "cars": [
                 {
@@ -142,7 +150,7 @@ class SimpleTCPClient(protocol.Protocol):
         live_data = {
             "messageType": "live",
             "live_image": message_body.get("live_image"),
-            "gate": message_body.get("gate")
+            "camera_id": message_body.get("camera_id")
         }
         asyncio.ensure_future(self._broadcast_to_socketio("live", live_data))
 

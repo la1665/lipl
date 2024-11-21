@@ -824,7 +824,7 @@ class LprOperation(CrudOperation):
                     description=setting_create.description,
                     value=setting_create.value,
                     setting_type=setting_create.setting_type,
-                    is_active=setting_create.is_active,
+                    # is_active=setting_create.is_active,
                     default_setting_id=default_setting.id if default_setting else None
                 )
                 session.add(setting_instance)
