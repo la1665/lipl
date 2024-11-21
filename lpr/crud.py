@@ -133,8 +133,8 @@ class GateOperation(CrudOperation):
         self.session = db_session
 
     async def get_gate(self, gate_id: int):
-        # async with self.db_session as session:
-            session = self.db_session
+        async with self.db_session as session:
+            # session = self.db_session
             query = await session.execute(select(DBGate)
                 .where(DBGate.id == gate_id)
             )
@@ -748,7 +748,7 @@ class LprOperation(CrudOperation):
             db_lpr = await self.get_lpr(lpr_id)
             update_data = lpr.dict(exclude_unset=True)
             try:
-
+                db_lpr = await session.merge(db_lpr)
                 for key, value in lpr.dict(exclude_unset=True).items():
                     setattr(db_lpr, key, value)
 
