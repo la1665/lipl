@@ -202,7 +202,7 @@ class GateOperation(CrudOperation):
                     db_gate.building_id = building_id
 
                 for key, value in update_data.items():
-                    if key != "building_id"
+                    if key != "building_id":
                         setattr(db_gate, key, value)
 
                 await session.commit()
