@@ -5,6 +5,8 @@ import hmac
 import hashlib
 import asyncio
 import socketio
+# from twisted.internet import asyncioreactor
+# asyncioreactor.install(asyncio.get_event_loop())
 from twisted.internet import protocol, reactor, ssl
 from sqlalchemy.future import select
 
@@ -76,9 +78,10 @@ class SimpleTCPClient(protocol.Protocol):
             full_message, self.incomplete_data = self.incomplete_data.split('<END>', 1)
             if full_message:
                 print(f"[DEBUG] Received message: {full_message[:100]}...")
-                reactor.callInThread(self._process_message, full_message)
+                asyncio.create_task(self._process_message(full_message))
+                # reactor.callInThread(self._process_message, full_message)
 
-    def _process_message(self, message):
+    async def _process_message(self, message):
         """
         Processes the received message from the server.
         This runs in a separate thread.
@@ -212,12 +215,11 @@ class SimpleTCPClient(protocol.Protocol):
                 for car in message_body.get("cars", [])
             ]
         }
-        reactor.callFromThread(
-            asyncio.run, self._store_plate_data(message_body)
-        )
-        reactor.callFromThread(
-            asyncio.run, self._broadcast_to_socketio("plates_data", socketio_message)
-        )
+        asyncio.create_task(self._store_plate_data(message_body))
+        asyncio.create_task(self._broadcast_to_socketio("plates_data", socketio_message))
+        # reactor.callFromThread(
+        #     asyncio.run, self._broadcast_to_socketio("plates_data", socketio_message)
+        # )
 
     def _handle_command_response(self, message):
         """
@@ -232,7 +234,8 @@ class SimpleTCPClient(protocol.Protocol):
             "live_image": message_body.get("live_image"),
             "camera_id": message_body.get("camera_id")
         }
-        asyncio.ensure_future(self._broadcast_to_socketio("live", live_data))
+        asyncio.create_task(self._broadcast_to_socketio("live", live_data))
+        # asyncio.ensure_future(self._broadcast_to_socketio("live", live_data))
 
     def _handle_unknown_message(self, message):
         print(f"[WARN] Received unknown message type: {message.get('messageType')}")
@@ -298,16 +301,6 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
             print(f"[ERROR] Connection failed: {reason}. Retrying with SSL context...")
             self.reconnecting = True
             self._attempt_reconnect()
-    # def _attempt_reconnect(self, connector):
-    #     """
-    #     Attempts reconnection only if the connector is in the correct state.
-    #     """
-    #     if connector.state == 'disconnected':
-    #         print(f"[INFO] Reconnecting...")
-    #         reactor.callLater(self.initialDelay, self.retry, connector)
-    #     else:
-    #         print(f"[ERROR] Cannot reconnect in current state: {connector.state}. Retrying later...")
-    #         reactor.callLater(5, self._attempt_reconnect, connector)
 
     def _attempt_reconnect(self):
         """Reconnect with a new SSL context setup."""

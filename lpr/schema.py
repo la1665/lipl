@@ -98,8 +98,6 @@ class CameraSettingInstanceInDB(CameraSettingInstanceBase):
         from_attributes = True
 
 
-
-
 class LprSettingInstanceBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -130,7 +128,6 @@ class LprSettingInstanceInDB(LprSettingInstanceBase):
         from_attributes = True
 
 
-
 class CameraSummary(BaseModel):
     id: int
     name: str
@@ -138,12 +135,15 @@ class CameraSummary(BaseModel):
     class Config:
         from_attributes = True
 
+
+
 class LprSummary(BaseModel):
     id: int
     name: str
 
     class Config:
         from_attributes = True
+
 
 class CameraSettingBase(BaseModel):
     name: str
@@ -172,7 +172,6 @@ class CameraSettingInDB(CameraSettingBase):
 
     class Config:
         from_attributes = True
-
 
 
 class CameraBase(BaseModel):
@@ -227,6 +226,7 @@ class LprSettingUpdate(BaseModel):
     setting_type: Optional[SettingType] = None
     is_active: Optional[bool] = None
 
+
 class LprSettingInDB(LprSettingBase):
     id: int
     is_active: bool
@@ -247,6 +247,7 @@ class LprBase(BaseModel):
     latitude: str
     longitude: str
 
+
 class LprCreate(LprBase):
     pass
 
@@ -261,6 +262,7 @@ class LprUpdate(BaseModel):
     longitude: Optional[str] = None
     is_active: Optional[bool] = None
 
+
 class LprInDB(LprBase):
     id: int
     is_active: bool
@@ -272,17 +274,6 @@ class LprInDB(LprBase):
     class Config:
         from_attributes = True
 
-
-
-# class BuildingPagination(BaseModel):
-#     items: List[BuildingInDB]
-#     total_records: int
-#     total_pages: int
-#     current_page: int
-#     page_size: int
-
-#     class Config:
-#         from_attributes = True
 
 
 T = TypeVar('T')

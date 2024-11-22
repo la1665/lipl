@@ -366,13 +366,7 @@ class CameraOperation(CrudOperation):
             # session = self.db_session
             db_gate = await GateOperation(self.db_session).get_gate(camera.gate_id)
             try:
-                db_gate = await self.db_session.merge(db_gate)
-                # if camera.setting_ids:
-                #     result = await session.execute(select(DBCameraSetting).where(DBCameraSetting.id.in_(camera.setting_ids)))
-                #     settings = result.scalars().all()
-                #     if len(settings) != len(camera.setting_ids):
-                #         raise HTTPException(status_code=404, detail="One or more settings not found")
-
+                # db_gate = await self.db_session.merge(db_gate)
 
                 db_camera = DBCamera(
                     name=camera.name,
@@ -382,7 +376,7 @@ class CameraOperation(CrudOperation):
                     gate_id=camera.gate_id
                 )
                 self.db_session.add(db_camera)
-                await self.db_session.commit()
+                # await self.db_session.commit()
                 await self.db_session.flush()
 
                 result = await self.db_session.execute(select(DBCameraSetting))
@@ -398,7 +392,7 @@ class CameraOperation(CrudOperation):
                         default_setting_id=setting.id
                     )
                     self.db_session.add(setting_instance)
-                await self.db_session.commit()
+                # await self.db_session.commit()
                 logger.critical(f"created camera with settings to create camera{db_camera.id}")
 
                 if camera.lpr_ids:
@@ -406,14 +400,14 @@ class CameraOperation(CrudOperation):
                     query = await self.db_session.execute(select(DBLpr)
                         .where(DBLpr.id.in_(camera.lpr_ids))
                     )
-                    lprs =  query.unique().scalars().all()
+                    lprs =  query.scalars().all()
                     logger.critical(f"found lprs are: {[lpr.name for lpr in lprs]}")
                     if len(lprs) != len(camera.lpr_ids):
                         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
                     db_camera.lprs.extend(lprs)
-                    await self.db_session.commit()
+                    # await self.db_session.commit()
 
-                # await session.commit()
+                await self.db_session.commit()
                 await self.db_session.refresh(db_camera)
                 return db_camera
 

@@ -185,7 +185,7 @@ default_cameras = [
       "longitude": "1.0.1",
       "description": "دوربین اصلی گیت",
       "gate_id": 1,
-      "lpr_ids": [1,2],
+      "lpr_ids": [],
     },
     {
       "name": "دوربین دوم",
@@ -193,7 +193,7 @@ default_cameras = [
       "longitude": "2.0.1",
       "description": "دوربین گیت ورود",
       "gate_id": 2,
-      "lpr_ids": [3],
+      "lpr_ids": [],
     },
     {
       "name": "دوربین سوم",
@@ -201,7 +201,7 @@ default_cameras = [
       "longitude": "3.0.1",
       "description": "دوربین گیت خروج",
       "gate_id": 3,
-      "lpr_ids": [4],
+      "lpr_ids": [1],
     },
     {
       "name": "دوربین گیت اصلی",
@@ -209,7 +209,7 @@ default_cameras = [
       "longitude": "4.0.1",
       "description": "دوربین اصلی(ورود/خروج)",
       "gate_id": 4,
-      "lpr_ids": [5],
+      "lpr_ids": [],
     },
 ]
 
@@ -277,7 +277,8 @@ async def initialize_defaults(db: AsyncSession):
             port=lpr["port"],
             auth_token=lpr["auth_token"]
         )
-        await lpr_op.create_lpr(lpr_obj)
+        new_lpr = await lpr_op.create_lpr(lpr_obj)
+        print(f"Created lpr with ID: {new_lpr.id}")
     print("default lprs created!!!")
 
     camera_op = CameraOperation(db)

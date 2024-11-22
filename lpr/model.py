@@ -18,54 +18,12 @@ class SettingType(Enum):
     STRING = "string"
 
 
-
-# class DBCameraSettingAssociation(Base):
-#     __tablename__ = 'camera_setting_association'
-
-#     camera_id = Column(Integer, ForeignKey('cameras.id'), primary_key=True)
-#     setting_id = Column(Integer, ForeignKey('camera_settings.id'), primary_key=True)
-#     name = Column(String(255), nullable=False)
-#     value = Column(String(255), nullable=False)
-
-#     camera = relationship("DBCamera", back_populates="setting_associations")
-#     setting = relationship("DBCameraSetting", back_populates="camera_associations")
-
-
-# class DBLprSettingAssociation(Base):
-#     __tablename__ = 'lpr_setting_association'
-
-#     lpr_id = Column(Integer, ForeignKey('lprs.id'), primary_key=True)
-#     setting_id = Column(Integer, ForeignKey('lpr_settings.id'), primary_key=True)
-#     name = Column(String(255), nullable=False)
-#     value = Column(String(255), nullable=False)
-
-#     lpr = relationship("DBLpr", back_populates="setting_associations")
-#     setting = relationship("DBLprSetting", back_populates="lpr_associations")
-
-
-
-# camera_settings_association = Table(
-#     'camera_settings_association',
-#     Base.metadata,
-#     Column('camera_id', Integer, ForeignKey('cameras.id'), primary_key=True),
-#     Column('setting_id', Integer, ForeignKey('camera_settings.id'), primary_key=True),
-# )
-
-# lpr_settings_association = Table(
-#     'lpr_settings_association',
-#     Base.metadata,
-#     Column('lpr_id', Integer, ForeignKey('lprs.id'), primary_key=True),
-#     Column('setting_id', Integer, ForeignKey('lpr_settings.id'), primary_key=True),
-# )
-
-
 camera_lpr_association = Table(
     'camera_lpr_association',
     Base.metadata,
     Column('camera_id', Integer, ForeignKey('cameras.id'), primary_key=True),
     Column('lpr_id', Integer, ForeignKey('lprs.id'), primary_key=True),
 )
-
 
 
 class DBBuilding(Base):
@@ -99,8 +57,6 @@ class DBGate(Base):
     cameras = relationship("DBCamera", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")
 
 
-
-
 class DBCameraSetting(Base):
     __tablename__ = 'camera_settings'
 
@@ -113,8 +69,6 @@ class DBCameraSetting(Base):
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 
-    # cameras = relationship("DBCamera", secondary=camera_settings_association, back_populates="settings", lazy="selectin")
-    # camera_associations = relationship("DBCameraSettingAssociation", back_populates="setting", lazy="selectin")
 
 class DBCameraSettingInstance(Base):
     __tablename__ = 'camera_setting_instances'
@@ -141,7 +95,6 @@ class DBCameraSettingInstance(Base):
     default_setting = relationship("DBCameraSetting", lazy="selectin")
 
 
-
 class DBCamera(Base):
     __tablename__ = 'cameras'
 
@@ -156,8 +109,6 @@ class DBCamera(Base):
 
     gate_id = Column(Integer, ForeignKey('gates.id'), nullable=False)
     gate = relationship("DBGate", back_populates="cameras", lazy="selectin")
-    # settings = relationship("DBCameraSetting", secondary=camera_settings_association, back_populates="cameras", lazy="selectin")
-    # setting_associations = relationship("DBCameraSettingAssociation", back_populates="camera", cascade="all, delete-orphan", lazy="selectin")
     settings = relationship(
             "DBCameraSettingInstance",
             back_populates="camera",
@@ -166,15 +117,10 @@ class DBCamera(Base):
         )
     lprs = relationship(
             'DBLpr',
-            secondary=camera_lpr_association,
+            secondary="camera_lpr_association",
             back_populates='cameras',
-            lazy="joined"
+            lazy="selectin"
         )
-
-    # @property
-    # def settings(self):
-    #     return {assoc.name: assoc.value for assoc in self.setting_associations}
-
 
 
 class DBLprSetting(Base):
@@ -188,9 +134,6 @@ class DBLprSetting(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
-
-    # lprs = relationship("DBLpr", secondary=lpr_settings_association, back_populates="settings", lazy="selectin")
-    # lpr_associations = relationship("DBLprSettingAssociation", back_populates="setting", lazy="selectin")
 
 
 class DBLprSettingInstance(Base):
@@ -233,8 +176,6 @@ class DBLpr(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
-    # settings = relationship("DBLprSetting", secondary=lpr_settings_association, back_populates="lprs", lazy="selectin")
-    # setting_associations = relationship("DBLprSettingAssociation", back_populates="lpr", cascade="all, delete-orphan", lazy="selectin")
 
     settings = relationship(
             "DBLprSettingInstance",
@@ -244,35 +185,7 @@ class DBLpr(Base):
         )
     cameras = relationship(
             'DBCamera',
-            secondary=camera_lpr_association,
+            secondary="camera_lpr_association",
             back_populates='lprs',
-            lazy="joined"
+            lazy="selectin"
         )
-
-    # @property
-    # def settings(self):
-    #     return {assoc.name: assoc.value for assoc in self.setting_associations}
-
-
-
-
-
-class DBPlateData(Base):
-    __tablename__ = 'plate_data'
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    timestamp = Column(DateTime, nullable=False, default=func.now())
-    plate_number = Column(String, nullable=False)
-    ocr_accuracy = Column(Float, nullable=True)
-    vision_speed = Column(Float, nullable=True)
-    gate = Column(String, nullable=True)
-
-
-class DBImageData(Base):
-    __tablename__ = 'image_data'
-
-    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    plate_number = Column(String, nullable=False)
-    gate = Column(String, nullable=True)
-    file_path = Column(String, nullable=False)  # Path to the saved image
-    timestamp = Column(DateTime, nullable=False, default=func.now())

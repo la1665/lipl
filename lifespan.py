@@ -41,20 +41,24 @@ async def initialize_lpr_connections():
     print("Initializing LPR connections...")
     try:
         async with async_session() as session:
-            result = await session.execute(select(DBLpr))
-            lprs = result.scalars().unique().all()
-            logger.info(f"Found {len(lprs)} LPRs for initialization.")
-            print(f"Found {len(lprs)} LPRs for initialization.")
+            try:
+                result = await session.execute(select(DBLpr))
+                lprs = result.scalars().unique().all()
+                logger.info(f"Found {len(lprs)} LPRs for initialization.")
+                print(f"Found {len(lprs)} LPRs for initialization.")
 
-            for lpr in lprs:
-                factory = connect_to_server(
-                    server_ip=lpr.ip,
-                    port=lpr.port,
-                    auth_token=lpr.auth_token
-                )
-                await connection_manager.add_connection(lpr.id, factory)
-                logger.info(f"Initialized connection for LPR with ID: {lpr.id}, IP: {lpr.ip}, Port: {lpr.port}")
-                print(f"Initialized connection for LPR with ID: {lpr.id}, IP: {lpr.ip}, Port: {lpr.port}")
+                for lpr in lprs:
+                    factory = connect_to_server(
+                        server_ip=lpr.ip,
+                        port=lpr.port,
+                        auth_token=lpr.auth_token
+                    )
+                    await connection_manager.add_connection(lpr.id, factory)
+                    logger.info(f"Initialized connection for LPR with ID: {lpr.id}, IP: {lpr.ip}, Port: {lpr.port}")
+                    print(f"Initialized connection for LPR with ID: {lpr.id}, IP: {lpr.ip}, Port: {lpr.port}")
+            except Exception as error:
+                await session.rollback()
+                print(f"Error: {error}")
     except Exception as error:
         logger.error(f"Failed to initialize LPR connections: {error}")
         print(f"Failed to initialize LPR connections: {error}")
@@ -102,9 +106,9 @@ async def lifespan(app: FastAPI):
 
 
     # Start the Twisted reactor in a separate thread
+    await initialize_lpr_connections()
     reactor_thread = threading.Thread(target=start_reactor, daemon=True)
     reactor_thread.start()
-    await initialize_lpr_connections()
     await asyncio.sleep(5)
     logger.info("TCP clients initialized and authenticated")
     # Initialize TCP clients for all LPRs

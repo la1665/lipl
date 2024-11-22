@@ -15,7 +15,8 @@ from user.model import DBUser, UserType
 
 async def get_user(db: AsyncSession, username: str|None):
     result = await db.execute(select(DBUser).filter(DBUser.username == username))
-    return result.unique().scalars().first()
+    user = result.unique().scalars().first()
+    return user
 
 
 async def get_current_user(

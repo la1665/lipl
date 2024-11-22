@@ -1,3 +1,4 @@
+import reactor_setup
 import uvicorn
 import os
 import logging

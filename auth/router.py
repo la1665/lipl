@@ -15,7 +15,8 @@ logger = logging.getLogger(__name__)
 
 @auth_router.post("/login", response_model=Token)
 async def login_for_access_token(
-    db: AsyncSession = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db)
 ):
     logger.info(f"User login attempt for username: {form_data.username}")
     user = await access_level.get_user(db, form_data.username)

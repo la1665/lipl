@@ -16,9 +16,10 @@ DATABASE_URL = (
 engine: AsyncEngine = create_async_engine(DATABASE_URL, echo=True, future=True)
 async_session = async_sessionmaker(
     bind=engine,
-    autocommit=False,
-    autoflush=False,
-    expire_on_commit=False
+    # autocommit=False,
+    # autoflush=False,
+    expire_on_commit=False,
+    class_=AsyncSession
 )
 Base = declarative_base()
 
