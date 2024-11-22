@@ -151,7 +151,7 @@ class SimpleTCPClient(protocol.Protocol):
         """
         async with async_session() as session:
             for car in plate_data.get("cars", []):
-                plate_number = car.get("plate", {}).get("plate", "Unknown"),
+                plate_number = car.get("plate", {}).get("plate", "Unknown")
                 vehicle = await self._get_or_create_vehicle(session, plate_number, car)
                 traffic_entry = Traffic(
                     vehicle_id=vehicle.id,
