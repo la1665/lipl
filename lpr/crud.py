@@ -397,16 +397,26 @@ class CameraOperation(CrudOperation):
                 # await self.db_session.commit()
                 logger.critical(f"created camera with settings to create camera{db_camera.id}")
 
-                if camera.lpr_ids:
-                    logger.critical(f"lpr ids are: {camera.lpr_ids}")
-                    query = await self.db_session.execute(select(DBLpr)
-                        .where(DBLpr.id.in_(camera.lpr_ids))
+                lpr_data = camera.dict(exclude_unset=True)
+                if "lpr_ids" in lpr_data:
+                    logger.critical(f"lpr ids are: {lpr_data['lpr_ids']}")
+                    result = await self.db_session.execute(
+                        select(DBLpr).where(DBLpr.id.in_(lpr_data["lpr_ids"]))
                     )
-                    lprs =  query.scalars().all()
-                    logger.critical(f"found lprs are: {[lpr.name for lpr in lprs]}")
-                    if len(lprs) != len(camera.lpr_ids):
+                    lprs = result.unique().scalars().all()
+                    if len(lprs) != len(lpr_data["lpr_ids"]):
                         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
-                    db_camera.lprs= lprs
+                    db_camera.lprs = lprs
+                # if camera.lpr_ids:
+                #     logger.critical(f"lpr ids are: {camera.lpr_ids}")
+                #     query = await self.db_session.execute(select(DBLpr)
+                #         .where(DBLpr.id.in_(camera.lpr_ids))
+                #     )
+                #     lprs =  query.scalars().all()
+                #     logger.critical(f"found lprs are: {[lpr.name for lpr in lprs]}")
+                #     if len(lprs) != len(camera.lpr_ids):
+                #         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
+                #     db_camera.lprs= lprs
                     # await self.db_session.commit()
 
                 await self.db_session.commit()

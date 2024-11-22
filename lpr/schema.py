@@ -183,7 +183,7 @@ class CameraBase(BaseModel):
 
 class CameraCreate(CameraBase):
     gate_id: int
-    lpr_ids: Optional[List[int]] = []
+    lpr_ids: Optional[List[int]] = None
 
 
 class CameraUpdate(BaseModel):

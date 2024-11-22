@@ -109,7 +109,7 @@ async def lifespan(app: FastAPI):
     await initialize_lpr_connections()
     # reactor_thread = threading.Thread(target=start_reactor, daemon=True)
     # reactor_thread.start()
-    await asyncio.sleep(5)
+    # await asyncio.sleep(5)
     logger.info("TCP clients initialized and authenticated")
     # Initialize TCP clients for all LPRs
     # async def initialize_tcp_clients():
