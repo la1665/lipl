@@ -192,7 +192,7 @@ class CameraUpdate(BaseModel):
     longitude: Optional[str] = None
     description: Optional[str] = None
     gate_id: Optional[int] = None
-    lpr_ids: Optional[List[int]] = []
+    lpr_ids: Optional[List[int]] = None
     is_active: Optional[bool] = None
 
 

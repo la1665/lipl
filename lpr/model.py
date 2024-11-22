@@ -117,7 +117,7 @@ class DBCamera(Base):
         )
     lprs = relationship(
             'DBLpr',
-            secondary="camera_lpr_association",
+            secondary=camera_lpr_association,
             back_populates='cameras',
             lazy="selectin"
         )
@@ -185,7 +185,7 @@ class DBLpr(Base):
         )
     cameras = relationship(
             'DBCamera',
-            secondary="camera_lpr_association",
+            secondary=camera_lpr_association,
             back_populates='lprs',
             lazy="selectin"
         )
