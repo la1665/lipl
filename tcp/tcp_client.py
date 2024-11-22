@@ -151,7 +151,7 @@ class SimpleTCPClient(protocol.Protocol):
         """
         async with async_session() as session:
             for car in plate_data.get("cars", []):
-                plate_number = car.get("plate_number", "Unknown")
+                plate_number = car.get("plate", {}).get("plate", "Unknown"),
                 vehicle = await self._get_or_create_vehicle(session, plate_number, car)
                 traffic_entry = Traffic(
                     vehicle_id=vehicle.id,
@@ -177,9 +177,9 @@ class SimpleTCPClient(protocol.Protocol):
             vehicle_type_dict = car_data.get("vehicle_type", {})
             vehicle_color_dict = car_data.get("vehicle_color", {})
 
-            vehicle_class_value = vehicle_class_dict.get('class') if vehicle_class_dict else None
-            vehicle_type_value = vehicle_type_dict.get('class') if vehicle_type_dict else None
-            vehicle_color_value = vehicle_color_dict.get('class') if vehicle_color_dict else None
+            vehicle_class_value = str(vehicle_class_dict.get('class')) if vehicle_class_dict else None
+            vehicle_type_value = str(vehicle_type_dict.get('class')) if vehicle_type_dict else None
+            vehicle_color_value = str(vehicle_color_dict.get('class')) if vehicle_color_dict else None
 
             vehicle = Vehicle(
                 plate_number=plate_number,
@@ -338,3 +338,21 @@ def send_command_to_server(factory, command_data):
         factory.protocol_instance.send_command(command_data)
     else:
         print("[ERROR] Cannot send command: Client is not authenticated or connected.")
+
+
+
+
+
+
+
+
+
+#  [DEBUG] Received message: {"messageBody":{"camera_id":"1","cars":[{"box":{"bottom":135,"left":93,"right":165,"top":93},"direction":0,"meta_data":"null","ocr_accuracy":0.09002960473299026,"plate":{"city_code":0,"first":"14","letter":"j","plate":"14j67540","plate_type":"IR","second":"67540"},"radar_speed":0.0,"vehicle_class":{"class":1,"conf":0.9},"vehicle_color":{"class":"null","conf":0},"vehicle_type":{"class":0,"conf":0},"vision_speed":0.0}],"timestamp":"2024-11-22T14:32:47.644Z"},"messageId":"554a08c4-c136-41b9-88cc-65185a4deb88","messageType":"plates_data"}
+# [2024-11-22 18:02:47] 2024-11-22 18:02:47,718 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+# [2024-11-22 18:02:47] 2024-11-22 18:02:47,718 INFO sqlalchemy.engine.Engine SELECT vehicles.id, vehicles.plate_number, vehicles.vehicle_class, vehicles.vehicle_type, vehicles.vehicle_color, vehicles.is_active, vehicles.created_at, vehicles.updated_at, vehicles.owner_id
+# [2024-11-22 18:02:47] FROM vehicles
+# [2024-11-22 18:02:47] WHERE vehicles.plate_number = $1::VARCHAR
+# [2024-11-22 18:02:47] 2024-11-22 18:02:47,719 INFO sqlalchemy.engine.Engine [cached since 141.5s ago] ('Unknown',)
+# [2024-11-22 18:02:47] 2024-11-22 18:02:47,721 INFO sqlalchemy.engine.Engine INSERT INTO vehicles (plate_number, vehicle_class, vehicle_type, vehicle_color, is_active, created_at, updated_at, owner_id) VALUES ($1::VARCHAR, $2::VARCHAR, $3::VARCHAR, $4::VARCHAR, $5::BOOLEAN, now(), now(), $6::INTEGER) RETURNING vehicles.id, vehicles.created_at, vehicles.updated_at
+# [2024-11-22 18:02:47] 2024-11-22 18:02:47,721 INFO sqlalchemy.engine.Engine [cached since 141.5s ago] ('Unknown', 1, 0, None, True, None)
+# [2024-11-22 18:02:47] 2024-11-22 18:02:47,722 INFO sqlalchemy.engine.Engine ROLLBACK
