@@ -379,7 +379,7 @@ class CameraOperation(CrudOperation):
                 )
                 self.db_session.add(db_camera)
                 # await self.db_session.commit()
-                # await self.db_session.flush()
+                await self.db_session.flush()
 
                 result = await self.db_session.execute(select(DBCameraSetting))
                 default_settings = result.scalars().all()
@@ -397,27 +397,17 @@ class CameraOperation(CrudOperation):
                 # await self.db_session.commit()
                 logger.critical(f"created camera with settings to create camera{db_camera.id}")
 
-                # lpr_data = camera.dict(exclude_unset=True)
-                # if "lpr_ids" in lpr_data:
-                #     logger.critical(f"lpr ids are: {lpr_data['lpr_ids']}")
-                #     result = await self.db_session.execute(
-                #         select(DBLpr).where(DBLpr.id.in_(lpr_data["lpr_ids"]))
+                # if camera.lpr_ids:
+                #     logger.critical(f"lpr ids are: {camera.lpr_ids}")
+                #     query = await self.db_session.execute(select(DBLpr)
+                #         .where(DBLpr.id.in_(camera.lpr_ids))
                 #     )
-                #     lprs = result.unique().scalars().all()
-                #     if len(lprs) != len(lpr_data["lpr_ids"]):
+                #     lprs =  query.scalars().all()
+                #     logger.critical(f"found lprs are: {[lpr.name for lpr in lprs]}")
+                #     if len(lprs) != len(camera.lpr_ids):
                 #         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
-                #     db_camera.lprs = lprs
-                if camera.lpr_ids:
-                    logger.critical(f"lpr ids are: {camera.lpr_ids}")
-                    query = await self.db_session.execute(select(DBLpr)
-                        .where(DBLpr.id.in_(camera.lpr_ids))
-                    )
-                    lprs =  query.scalars().all()
-                    logger.critical(f"found lprs are: {[lpr.name for lpr in lprs]}")
-                    if len(lprs) != len(camera.lpr_ids):
-                        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
-                    db_camera.lprs= lprs
-                    self.db_session.add(db_camera)
+                #     db_camera.lprs= lprs
+                #     self.db_session.add(db_camera)
                     # await self.db_session.commit()
 
                 await self.db_session.commit()
@@ -440,14 +430,14 @@ class CameraOperation(CrudOperation):
                     await GateOperation(self.db_session).get_gate(gate_id)
                     db_camera.gate_id = gate_id
 
-                if "lpr_ids" in update_data:
-                    result = await self.db_session.execute(
-                        select(DBLpr).where(DBLpr.id.in_(update_data["lpr_ids"]))
-                    )
-                    lprs = result.unique().scalars().all()
-                    if len(lprs) != len(update_data["lpr_ids"]):
-                        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
-                    db_camera.lprs = lprs
+                # if "lpr_ids" in update_data:
+                #     result = await self.db_session.execute(
+                #         select(DBLpr).where(DBLpr.id.in_(update_data["lpr_ids"]))
+                #     )
+                #     lprs = result.unique().scalars().all()
+                #     if len(lprs) != len(update_data["lpr_ids"]):
+                #         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
+                #     db_camera.lprs = lprs
 
                 for key, value in update_data.items():
                     if key not in ["gate_id", "lpr_ids"]:
@@ -730,7 +720,8 @@ class LprOperation(CrudOperation):
                     auth_token=lpr.auth_token,
                     latitude=lpr.latitude,
                     longitude=lpr.longitude,
-                    description=lpr.description
+                    description=lpr.description,
+                    gate_id=lpr.gate_id
                 )
                 self.db_session.add(new_lpr)
                 await self.db_session.flush()
@@ -758,11 +749,17 @@ class LprOperation(CrudOperation):
     async def update_lpr(self, lpr_id: int, lpr):
         # async with self.db_session as session:
             db_lpr = await self.get_lpr(lpr_id)
-            update_data = lpr.dict(exclude_unset=True)
             try:
-                db_lpr = await self.db_session.merge(db_lpr)
-                for key, value in lpr.dict(exclude_unset=True).items():
-                    setattr(db_lpr, key, value)
+                update_data = lpr.dict(exclude_unset=True)
+                # db_lpr = await self.db_session.merge(db_lpr)
+                if "gate_id" in update_data:
+                    gate_id = update_data["gate_id"]
+                    await GateOperation(self.db_session).get_gate(gate_id)
+                    db_lpr.gate_id = gate_id
+
+                for key, value in update_data.items():
+                    if key not in ["gate_id", "lpr_ids"]:
+                        setattr(db_lpr, key, value)
 
                 await self.db_session.commit()
                 await self.db_session.refresh(db_lpr)

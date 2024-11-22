@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Live Plate Data</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                margin: 20px;
+            }
+            h1 {
+                color: #333;
+            }
+            .data-container,
+            .login-container {
+                margin-bottom: 20px;
+            }
+            .plate-info {
+                font-size: 16px;
+                margin-bottom: 10px;
+            }
+            .image-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+            }
+            #full-image,
+            .plate-image {
+                max-width: 100%;
+                height: auto;
+                border: 1px solid #ddd;
+                padding: 5px;
+                margin-bottom: 20px;
+            }
+            #full-image {
+                display: none;
+            }
+            .hidden {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="login-container" id="login-container">
+            <h1>Login</h1>
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="Enter username" />
+            <br />
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Enter password" />
+            <br />
+            <button onclick="login()">Login</button>
+        </div>
+
+        <div id="main-content" class="hidden">
+            <h1>Live Plate Data</h1>
+
+            <div id="plate-data" class="data-container">
+                <div class="plate-info" id="timestamp">Timestamp:</div>
+                <div class="plate-info" id="gate">Gate:</div>
+            </div>
+
+            <div class="image-container">
+                <h2>Full Plate Image</h2>
+                <img id="full-image" alt="Full Image" src="" />
+            </div>
+
+            <div id="car-data"></div>
+            <!-- Container for multiple car data -->
+
+            <!-- Input field for camera ID -->
+            <div>
+                <label for="camera-id-input">Enter Camera ID:</label>
+                <input
+                    type="text"
+                    id="camera-id-input"
+                    placeholder="Enter camera ID"
+                />
+            </div>
+
+            <button onclick="requestData('live')">Request Live Data</button>
+            <button onclick="requestData('plate')">Request Plate Data</button>
+        </div>
+
+        <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+        <script>
+            let socket;
+
+            // Function to handle login
+            async function login() {
+                const username = document.getElementById("username").value;
+                const password = document.getElementById("password").value;
+
+                const response = await fetch("http://127.0.0.1:8000/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password }),
+                    credentials: "include",
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    console.log("Login successful:", data);
+                    document
+                        .getElementById("login-container")
+                        .classList.add("hidden");
+                    document
+                        .getElementById("main-content")
+                        .classList.remove("hidden");
+
+                    console.log("Login successful:", data);
+                    connectWebSocket(); // Proceed to open WebSocket after successful login
+                } else {
+                    console.log("Login failed:", data.detail);
+                    alert("Login failed: " + data.detail);
+                }
+            }
+
+            // Function to establish WebSocket connection
+            function connectWebSocket() {
+                // Open WebSocket connection
+                socket = io("ws://services.irn8.chabokan.net", {
+                    path: "/socket.io",
+                    transports: ["websocket"],
+                });
+
+                socket.on("connect", () => {
+                    console.log("Connected to WebSocket server");
+                });
+
+                socket.on("plates_data", (data) => updatePlateData(data));
+                socket.on("live", (data) => updateLiveData(data));
+                socket.on("disconnect", () =>
+                    console.log("Disconnected from Socket.IO server"),
+                );
+
+                // Set up requestData function to emit messages to the server
+                window.requestData = (requestType) => {
+                    const cameraID =
+                        document.getElementById("camera-id-input").value;
+                    if (!cameraID) {
+                        alert("Please enter a Camera ID.");
+                        return;
+                    }
+                    socket.emit("handle_request", {
+                        request_type: requestType,
+                        cameraID: cameraID,
+                    });
+                };
+            }
+
+            // Function to update the UI with plate data
+            function updatePlateData(data) {
+                document.getElementById("timestamp").innerText =
+                    "Timestamp: " + (data.timestamp || "Unknown");
+                document.getElementById("gate").innerText =
+                    "Gate: " + (data.camera_id || "Unknown");
+
+                const fullImage = document.getElementById("full-image");
+                if (data.full_image) {
+                    fullImage.src = "data:image/png;base64," + data.full_image;
+                    fullImage.style.display = "block";
+                } else {
+                    fullImage.style.display = "none";
+                }
+
+                const carDataContainer = document.getElementById("car-data");
+                carDataContainer.innerHTML = "";
+
+                data.cars.forEach((car, index) => {
+                    const carInfoDiv = document.createElement("div");
+                    carInfoDiv.className = "car-info";
+                    carInfoDiv.innerHTML = `
+                    <h3>Car ${index + 1}</h3>
+                    <div class="plate-info">Plate Number: ${car.plate_number || "Unknown"}</div>
+                    <div class="plate-info">OCR Accuracy: ${car.ocr_accuracy || "Undefined"}</div>
+                    <div class="plate-info">Vision Speed: ${car.vision_speed || "Undefined"}</div>
+                    <div class="plate-info">Vehicle Class: ${car.vehicle_class || "Unknown"}</div>
+                    <div class="plate-info">Vehicle Type: ${car.vehicle_type || "Unknown"}</div>
+                    <div class="plate-info">Vehicle Color: ${car.vehicle_color || "Unknown"}</div>
+                    <img class="plate-image" src="data:image/png;base64,${car.plate_image || ""}" alt="Plate Image">
+                `;
+                    carDataContainer.appendChild(carInfoDiv);
+                });
+            }
+
+            function updateLiveData(data) {
+                document.getElementById("live-image").src =
+                    "data:image/png;base64," + data.live_image;
+                document.getElementById("live-gate").innerText =
+                    "Gate: " + data.gate;
+            }
+        </script>
+    </body>
+</html>

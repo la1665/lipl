@@ -18,12 +18,12 @@ class SettingType(Enum):
     STRING = "string"
 
 
-camera_lpr_association = Table(
-    'camera_lpr_association',
-    Base.metadata,
-    Column('camera_id', Integer, ForeignKey('cameras.id'), primary_key=True),
-    Column('lpr_id', Integer, ForeignKey('lprs.id'), primary_key=True),
-)
+# camera_lpr_association = Table(
+#     'camera_lpr_association',
+#     Base.metadata,
+#     Column('camera_id', Integer, ForeignKey('cameras.id'), primary_key=True),
+#     Column('lpr_id', Integer, ForeignKey('lprs.id'), primary_key=True),
+# )
 
 
 class DBBuilding(Base):
@@ -55,6 +55,7 @@ class DBGate(Base):
     building_id = Column(Integer, ForeignKey('buildings.id'), nullable=False)
     building = relationship('DBBuilding', back_populates='gates', lazy="selectin")
     cameras = relationship("DBCamera", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")
+    lprs = relationship("DBLpr", back_populates="gate", cascade="all, delete-orphan", lazy="selectin")
 
 
 class DBCameraSetting(Base):
@@ -115,12 +116,12 @@ class DBCamera(Base):
             lazy="selectin",
             cascade="all, delete-orphan"
         )
-    lprs = relationship(
-            'DBLpr',
-            secondary=camera_lpr_association,
-            back_populates='cameras',
-            lazy="selectin"
-        )
+    # lprs = relationship(
+    #         'DBLpr',
+    #         secondary=camera_lpr_association,
+    #         back_populates='cameras',
+    #         lazy="selectin"
+    #     )
 
 
 class DBLprSetting(Base):
@@ -183,9 +184,10 @@ class DBLpr(Base):
             lazy="selectin",
             cascade="all, delete-orphan"
         )
-    cameras = relationship(
-            'DBCamera',
-            secondary=camera_lpr_association,
-            back_populates='lprs',
-            lazy="selectin"
-        )
+    gate = relationship("DBGate", back_populates="lprs", lazy="selectin")
+    # cameras = relationship(
+    #         'DBCamera',
+    #         secondary=camera_lpr_association,
+    #         back_populates='lprs',
+    #         lazy="selectin"
+    #     )

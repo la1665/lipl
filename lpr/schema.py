@@ -183,7 +183,7 @@ class CameraBase(BaseModel):
 
 class CameraCreate(CameraBase):
     gate_id: int
-    lpr_ids: Optional[List[int]] = []
+    # lpr_ids: Optional[List[int]] = []
 
 
 class CameraUpdate(BaseModel):
@@ -192,7 +192,7 @@ class CameraUpdate(BaseModel):
     longitude: Optional[str] = None
     description: Optional[str] = None
     gate_id: Optional[int] = None
-    lpr_ids: Optional[List[int]] = None
+    # lpr_ids: Optional[List[int]] = None
     is_active: Optional[bool] = None
 
 
@@ -203,7 +203,7 @@ class CameraInDB(CameraBase):
     updated_at: datetime
     gate_id: int
     settings: List[CameraSettingInstanceInDB] = []
-    lprs: List[LprSummary] = []
+    # lprs: List[LprSummary] = []
 
     class Config:
         from_attributes = True
@@ -249,7 +249,8 @@ class LprBase(BaseModel):
 
 
 class LprCreate(LprBase):
-    pass
+    gate_id: int
+
 
 
 class LprUpdate(BaseModel):
@@ -260,6 +261,7 @@ class LprUpdate(BaseModel):
     auth_token: Optional[str] = None
     latitude: Optional[str] = None
     longitude: Optional[str] = None
+    gate_id: Optional[int] = None
     is_active: Optional[bool] = None
 
 
@@ -268,8 +270,9 @@ class LprInDB(LprBase):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+    gate_id: int
     settings: List[LprSettingInstanceInDB] = []
-    cameras: List[CameraSummary] = []
+    # cameras: List[CameraSummary] = []
 
     class Config:
         from_attributes = True
@@ -295,5 +298,5 @@ LprSettingPagination = Pagination[LprSettingInDB]
 LprPagination = Pagination[LprInDB]
 
 
-CameraInDB.update_forward_refs()
-LprInDB.update_forward_refs()
+# CameraInDB.update_forward_refs()
+# LprInDB.update_forward_refs()

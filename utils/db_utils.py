@@ -138,7 +138,8 @@ default_lprs = [
       "port": 45,
       "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
-      "longitude": "98.0.0"
+      "longitude": "98.0.0",
+      "gate_id": 1
     },
     {
       "name": "ماژول پلاک خوان۲",
@@ -147,7 +148,8 @@ default_lprs = [
       "port": 46,
       "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
-      "longitude": "98.0.0"
+      "longitude": "98.0.0",
+      "gate_id": 1
     },
     {
       "name": "ماژول پلاک خوان۳",
@@ -156,7 +158,8 @@ default_lprs = [
       "port": 47,
       "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
-      "longitude": "98.0.0"
+      "longitude": "98.0.0",
+      "gate_id": 2
     },
     {
       "name": "ماژول پلاک خوان۴",
@@ -165,7 +168,8 @@ default_lprs = [
       "port": 48,
       "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
-      "longitude": "98.0.0"
+      "longitude": "98.0.0",
+      "gate_id": 1
     },
     {
       "name": "ماژول پلاک خوان۵",
@@ -174,7 +178,8 @@ default_lprs = [
       "port": 49,
       "auth_token": "dBzsEzYuBy6wgiGlI4UUXJPLp1OoS0Cc2YgyCFOCh2U7pvH16ucL1334OjCmeWFJ",
       "latitude": "98.0.0",
-      "longitude": "98.0.0"
+      "longitude": "98.0.0",
+      "gate_id": 2
     }
 ]
 
@@ -185,7 +190,6 @@ default_cameras = [
       "longitude": "1.0.1",
       "description": "دوربین اصلی گیت",
       "gate_id": 1,
-      "lpr_ids": [],
     },
     {
       "name": "دوربین دوم",
@@ -193,7 +197,6 @@ default_cameras = [
       "longitude": "2.0.1",
       "description": "دوربین گیت ورود",
       "gate_id": 2,
-      "lpr_ids": [],
     },
     {
       "name": "دوربین سوم",
@@ -201,7 +204,6 @@ default_cameras = [
       "longitude": "3.0.1",
       "description": "دوربین گیت خروج",
       "gate_id": 3,
-      "lpr_ids": [1],
     },
     {
       "name": "دوربین گیت اصلی",
@@ -209,7 +211,6 @@ default_cameras = [
       "longitude": "4.0.1",
       "description": "دوربین اصلی(ورود/خروج)",
       "gate_id": 4,
-      "lpr_ids": [],
     },
 ]
 
@@ -275,7 +276,8 @@ async def initialize_defaults(db: AsyncSession):
             longitude=lpr["longitude"],
             ip=lpr["ip"],
             port=lpr["port"],
-            auth_token=lpr["auth_token"]
+            auth_token=lpr["auth_token"],
+            gate_id=lpr["gate_id"]
         )
         new_lpr = await lpr_op.create_lpr(lpr_obj)
         print(f"Created lpr with ID: {new_lpr.id}")
@@ -288,8 +290,7 @@ async def initialize_defaults(db: AsyncSession):
             description=camera["description"],
             latitude=camera["latitude"],
             longitude=camera["longitude"],
-            gate_id=camera["gate_id"],
-            lpr_ids=camera["lpr_ids"]
+            gate_id=camera["gate_id"]
         )
         try:
             created_camera = await camera_op.create_camera(camera_obj)
