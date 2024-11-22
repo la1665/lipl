@@ -17,9 +17,9 @@ from traffic.model import Vehicle, Traffic
 # Load environment variables from .env file
 
 # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-client_key_path = os.getenv("CLIENT_KEY_PATH","/app/certs/client.key")
-client_cert_path = os.getenv("CLIENT_CERT_PATH","/app/certs/client.crt")
-ca_cert_path = os.getenv("CA_CERT_PATH","/app/certs/ca.crt")
+client_key_path = os.getenv("CLIENT_KEY_PATH","/app/cert/client.key")
+client_cert_path = os.getenv("CLIENT_CERT_PATH","/app/cert/client.crt")
+ca_cert_path = os.getenv("CA_CERT_PATH","/app/cert/ca.crt")
 
 class SimpleTCPClient(protocol.Protocol):
     def __init__(self):
@@ -310,9 +310,9 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
             def getContext(self):
                 print("Using ssl context ...")
                 context = ssl.SSL.Context(ssl.SSL.TLSv1_2_METHOD)
-                context.use_certificate_file(client_cert_path)
-                context.use_privatekey_file(client_key_path)
-                context.load_verify_locations(ca_cert_path)
+                context.use_certificate_file(settings.CLIENT_CERT_PATH)
+                context.use_privatekey_file(settings.CLIENT_KEY_PATH)
+                context.load_verify_locations(settings.CA_CERT_PATH)
                 # context.use_certificate_file(settings.CLIENT_CERT_PATH)
                 # context.use_privatekey_file(settings.CLIENT_KEY_PATH)
                 # context.load_verify_locations(settings.CA_CERT_PATH)
