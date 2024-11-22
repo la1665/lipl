@@ -86,7 +86,8 @@ async def lifespan(app: FastAPI):
     print("[INFO] Starting lifespan")
     # Initialize database tables
     async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        # await conn.run_sync(Base.metadata.drop_all)
+        await conn.run_sync(lambda metadata: metadata.drop_all(bind=conn, checkfirst=True, cascade=True))
         logger.info("Database tables dropped successfully")
         print("[INFO] Database tables dropped")
         await conn.run_sync(Base.metadata.create_all)

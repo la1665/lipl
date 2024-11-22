@@ -7,7 +7,7 @@ import time
 from threading import Lock
 
 
-ALLOWED_ORIGINS = ["http://127.0.0.1:*", "http://localhost:*"]
+ALLOWED_ORIGINS = ["https://fastapi-8vlc6b.chbk.app", "https://services.irn8.chabokan.net", "91.236.169.133"]
 sio = AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app_socket = FastAPI()
 
