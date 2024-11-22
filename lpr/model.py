@@ -184,6 +184,7 @@ class DBLpr(Base):
             lazy="selectin",
             cascade="all, delete-orphan"
         )
+    gate_id = Column(Integer, ForeignKey('gates.id'), nullable=False)
     gate = relationship("DBGate", back_populates="lprs", lazy="selectin")
     # cameras = relationship(
     #         'DBCamera',

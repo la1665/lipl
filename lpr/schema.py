@@ -62,7 +62,8 @@ class GateInDB(GateBase):
     created_at: datetime
     updated_at: datetime
     is_active: bool
-    cameras: List["CameraInDB"] = []
+    cameras: List["CameraSummary"] = []
+    lprs: List["LprSummary"] = []
 
     class Config:
         from_attributes = True
