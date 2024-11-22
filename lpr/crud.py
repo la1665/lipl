@@ -406,7 +406,7 @@ class CameraOperation(CrudOperation):
                     logger.critical(f"found lprs are: {[lpr.name for lpr in lprs]}")
                     if len(lprs) != len(camera.lpr_ids):
                         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="One or more LPRs not found")
-                    db_camera.lprs.extend(lprs)
+                    db_camera.lprs= lprs
                     # await self.db_session.commit()
 
                 await self.db_session.commit()
@@ -422,7 +422,7 @@ class CameraOperation(CrudOperation):
             db_camera = await self.get_camera(camera_id)
 
             try:
-                db_camera = await self.db_session.merge(db_camera)
+                # db_camera = await self.db_session.merge(db_camera)
                 update_data = camera.dict(exclude_unset=True)
                 if "gate_id" in update_data:
                     gate_id = update_data["gate_id"]

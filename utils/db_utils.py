@@ -291,8 +291,14 @@ async def initialize_defaults(db: AsyncSession):
             gate_id=camera["gate_id"],
             lpr_ids=camera["lpr_ids"]
         )
-        await camera_op.create_camera(camera_obj)
-    print("default cameras created!!!")
+        try:
+            created_camera = await camera_op.create_camera(camera_obj)
+            logger.info(f"Created camera: {created_camera.name} with ID: {created_camera.id}")
+        except HTTPException as he:
+            logger.error(f"Failed to create camera {camera['name']}: {he.detail}")
+        except Exception as e:
+            logger.error(f"Unexpected error while creating camera {camera['name']}: {e}")
+    logger.info("Default cameras created!!!")
 
 
 async def create_default_admin(session: AsyncSession):

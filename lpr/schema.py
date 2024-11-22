@@ -293,3 +293,7 @@ CameraSettingPagination = Pagination[CameraSettingInDB]
 CameraPagination = Pagination[CameraInDB]
 LprSettingPagination = Pagination[LprSettingInDB]
 LprPagination = Pagination[LprInDB]
+
+
+CameraInDB.update_forward_refs()
+LprInDB.update_forward_refs()

@@ -107,8 +107,8 @@ async def lifespan(app: FastAPI):
 
     # Start the Twisted reactor in a separate thread
     await initialize_lpr_connections()
-    reactor_thread = threading.Thread(target=start_reactor, daemon=True)
-    reactor_thread.start()
+    # reactor_thread = threading.Thread(target=start_reactor, daemon=True)
+    # reactor_thread.start()
     await asyncio.sleep(5)
     logger.info("TCP clients initialized and authenticated")
     # Initialize TCP clients for all LPRs
@@ -149,6 +149,6 @@ async def lifespan(app: FastAPI):
     await engine.dispose()
     logger.info("Database connection closed")
     # Close all TCP clients
-    reactor.callFromThread(stop_reactor)
+    reactor.callFromThread(reactor.stop)
 
     print("[INFO] Lifespan ended")
