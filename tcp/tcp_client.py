@@ -5,6 +5,7 @@ import hmac
 import hashlib
 import asyncio
 import socketio
+import dateutil.parser
 # from twisted.internet import asyncioreactor
 # asyncioreactor.install(asyncio.get_event_loop())
 from sqlalchemy.exc import SQLAlchemyError
@@ -158,7 +159,8 @@ class SimpleTCPClient(protocol.Protocol):
                     traffic_entry = Traffic(
                         vehicle_id=vehicle.id,
                         camera_id=plate_data.get("camera_id"),
-                        timestamp=plate_data.get("timestamp"),
+                        # timestamp=plate_data.get("timestamp"),
+                        timestamp=dateutil.parser.isoparse(plate_data.get("timestamp")),
                         ocr_accuracy=car.get("ocr_accuracy", 0.0),
                         vision_speed=car.get("vision_speed", 0.0)
                     )
