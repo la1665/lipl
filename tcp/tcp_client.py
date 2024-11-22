@@ -7,6 +7,7 @@ import asyncio
 import socketio
 # from twisted.internet import asyncioreactor
 # asyncioreactor.install(asyncio.get_event_loop())
+from sqlalchemy.exc import SQLAlchemyError
 from twisted.internet import protocol, reactor, ssl
 from sqlalchemy.future import select
 
@@ -150,18 +151,23 @@ class SimpleTCPClient(protocol.Protocol):
         Stores the plate data in the database.
         """
         async with async_session() as session:
-            for car in plate_data.get("cars", []):
-                plate_number = car.get("plate", {}).get("plate", "Unknown")
-                vehicle = await self._get_or_create_vehicle(session, plate_number, car)
-                traffic_entry = Traffic(
-                    vehicle_id=vehicle.id,
-                    camera_id=plate_data.get("camera_id"),
-                    timestamp=plate_data.get("timestamp"),
-                    ocr_accuracy=car.get("ocr_accuracy", 0.0),
-                    vision_speed=car.get("vision_speed", 0.0)
-                )
-                session.add(traffic_entry)
-            await session.commit()
+            try:
+                for car in plate_data.get("cars", []):
+                    plate_number = car.get("plate", {}).get("plate", "Unknown")
+                    vehicle = await self._get_or_create_vehicle(session, plate_number, car)
+                    traffic_entry = Traffic(
+                        vehicle_id=vehicle.id,
+                        camera_id=plate_data.get("camera_id"),
+                        timestamp=plate_data.get("timestamp"),
+                        ocr_accuracy=car.get("ocr_accuracy", 0.0),
+                        vision_speed=car.get("vision_speed", 0.0)
+                    )
+                    session.add(traffic_entry)
+                await session.commit()
+                print("[INFO] Successfully stored plate data.")
+            except SQLAlchemyError as error:
+                print(f"[ERROR] couldn't save Vehicle/Traffic: {error}")
+                await session.rollback()
 
 
     async def _get_or_create_vehicle(self, session, plate_number, car_data):
@@ -188,7 +194,16 @@ class SimpleTCPClient(protocol.Protocol):
                 vehicle_color=vehicle_color_value,
             )
             session.add(vehicle)
-            await session.flush()
+            # await session.flush()
+            try:
+                await session.flush()
+                print(f"[INFO] Created new vehicle with plate number: {plate_number}")
+            except Exception as e:
+                print(f"[ERROR] Failed to create vehicle '{plate_number}': {e}")
+                await session.rollback()
+                raise e
+        else:
+            print(f"[INFO] Found existing vehicle with plate number: {plate_number}")
         return vehicle
 
 
