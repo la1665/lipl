@@ -160,7 +160,7 @@ class SimpleTCPClient(protocol.Protocol):
                         vehicle_id=vehicle.id,
                         camera_id=plate_data.get("camera_id"),
                         # timestamp=plate_data.get("timestamp"),
-                        timestamp=dateutil.parser.isoparse(plate_data.get("timestamp")),
+                        timestamp=dateutil.parser.isoparse(plate_data.get("timestamp")).replace(tzinfo=None),
                         ocr_accuracy=car.get("ocr_accuracy", 0.0),
                         vision_speed=car.get("vision_speed", 0.0)
                     )
