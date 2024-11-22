@@ -330,7 +330,6 @@ class CameraOperation(CrudOperation):
         # async with self.db_session as session:
             result = await self.db_session.execute(select(DBCamera)
                 .where(DBCamera.id==camera_id)
-                .options(selectinload(DBCamera.lprs))
             )
             camera =  result.unique().scalar_one_or_none()
             if camera is None:
@@ -352,7 +351,6 @@ class CameraOperation(CrudOperation):
             # Fetch the records
             query = await self.db_session.execute(
                 select(DBCamera).offset(offset).limit(page_size)
-                .options(selectinload(DBCamera.lprs))
             )
             cameras = query.unique().scalars().all()
             return {
@@ -669,7 +667,6 @@ class LprOperation(CrudOperation):
         # async with self.db_session as session:
             query = await self.db_session.execute(
                 select(DBLpr).where(DBLpr.id == lpr_id)
-                .options(selectinload(DBLpr.cameras))
             )
             lpr = query.unique().scalar_one_or_none()
             if lpr is None:
@@ -678,7 +675,7 @@ class LprOperation(CrudOperation):
 
     async def get_lpr_by_name(self, name: str):
         # async with self.db_session as session:
-            query = await self.db_session.execute(select(DBLpr).where(DBLpr.name == name).options(selectinload(DBLpr.cameras)))
+            query = await self.db_session.execute(select(DBLpr).where(DBLpr.name == name)
             lpr = query.unique().scalar_one_or_none()
             if lpr is None:
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="LPR not found")
@@ -699,7 +696,6 @@ class LprOperation(CrudOperation):
             # Fetch the records
             query = await self.db_session.execute(
                 select(DBLpr).offset(offset).limit(page_size)
-                .options(selectinload(DBLpr.cameras))
             )
             lprs = query.unique().scalars().all()
             return {
