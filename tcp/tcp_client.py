@@ -77,7 +77,7 @@ class SimpleTCPClient(protocol.Protocol):
         while '<END>' in self.incomplete_data:
             full_message, self.incomplete_data = self.incomplete_data.split('<END>', 1)
             if full_message:
-                print(f"[DEBUG] Received message: {full_message[:100]}...")
+                print(f"[DEBUG] Received message: {full_message}...")
                 asyncio.create_task(self._process_message(full_message))
                 # reactor.callInThread(self._process_message, full_message)
 
