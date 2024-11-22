@@ -165,7 +165,7 @@ class SimpleTCPClient(protocol.Protocol):
                     session.add(traffic_entry)
                 await session.commit()
                 print("[INFO] Successfully stored plate data.")
-            except SQLAlchemyError as error:
+            except Exception as error:
                 print(f"[ERROR] couldn't save Vehicle/Traffic: {error}")
                 await session.rollback()
 
@@ -183,9 +183,15 @@ class SimpleTCPClient(protocol.Protocol):
             vehicle_type_dict = car_data.get("vehicle_type", {})
             vehicle_color_dict = car_data.get("vehicle_color", {})
 
-            vehicle_class_value = str(vehicle_class_dict.get('class')) if vehicle_class_dict else None
-            vehicle_type_value = str(vehicle_type_dict.get('class')) if vehicle_type_dict else None
-            vehicle_color_value = str(vehicle_color_dict.get('class')) if vehicle_color_dict else None
+            # Function to safely convert to string or None
+            def safe_convert(value):
+                if value in [None, "null", "None"]:
+                    return None
+                return str(value)
+
+            vehicle_class_value = safe_convert(vehicle_class_dict.get('class'))
+            vehicle_type_value = safe_convert(vehicle_type_dict.get('class'))
+            vehicle_color_value = safe_convert(vehicle_color_dict.get('class'))
 
             vehicle = Vehicle(
                 plate_number=plate_number,
