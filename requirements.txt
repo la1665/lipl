@@ -38,10 +38,10 @@ PyJWT==2.9.0
 pyOpenSSL==24.2.1
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
-python-engineio==3.13.2
+python-engineio==4.4.0
 python-jose==3.3.0
 python-multipart==0.0.12
-python-socketio==4.6.0
+python-socketio==5.8.0
 rsa==4.9
 service-identity==24.2.0
 simple-websocket==1.1.0
