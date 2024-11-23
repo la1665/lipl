@@ -25,5 +25,5 @@ COPY . .
 # COPY .cert .
 # EXPOSE 8000
 
-# CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--reload"]
-CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile", "/app/cert/client.key", "--ssl-certfile", "/app/cert/client.crt", "--ssl-ca-certs", "/app/cert/ca.crt"]
+CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]
+# CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile", "/app/cert/client.key", "--ssl-certfile", "/app/cert/client.crt", "--ssl-ca-certs", "/app/cert/ca.crt"]

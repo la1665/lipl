@@ -11,7 +11,7 @@ from auth.router import auth_router
 from user.router import user_router
 from lpr.router import building_router, gate_router, camera_settings_router, camera_router, lpr_setting_router, lpr_router
 from tcp.router import tcp_router
-from tcp.socket_management import sio as tcp_sio
+from tcp.socket_management import tcp_sio
 from logging_config import setup_logging
 
 setup_logging()
@@ -22,12 +22,12 @@ logger.info("Starting FastAPI application")
 
 app.add_middleware(
     CORSMiddleware,
-    # allow_origins=["*"],
-    allow_origins=[
-            "https://fastapi-8vlc6b.chbk.app",
-            "https://services.irn8.chabokan.net",
-            "https://91.236.169.133"
-        ],
+    allow_origins=["*"],
+    # allow_origins=[
+    #         "https://fastapi-8vlc6b.chbk.app",
+    #         "https://services.irn8.chabokan.net",
+    #         "https://91.236.169.133"
+    #     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -58,7 +58,8 @@ def main():
     """
     Main entry point for running the FastAPI app.
     """
-    uvicorn.run("main:app_socket", host="0.0.0.0", port=443, ssl_keyfile="./cert/client.key", ssl_certfile="./cert/client.crt", ssl_ca_certs="./cert/ca.crt")
+    uvicorn.run("main:app_socket", host="0.0.0.0", port=8000, log_level="debug")
+    # uvicorn.run("main:app_socket", host="0.0.0.0", port=8000, ssl_keyfile="./cert/client.key", ssl_certfile="./cert/client.crt", ssl_ca_certs="./cert/ca.crt")
 
 
 if __name__ == "__main__":

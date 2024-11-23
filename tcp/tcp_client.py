@@ -74,12 +74,12 @@ class SimpleTCPClient(protocol.Protocol):
 
     def dataReceived(self, data):
         """Accumulates and processes data received from the server."""
-        print("data is receiving ...")
+        # print("data is receiving ...")
         self.incomplete_data += data.decode('utf-8')
         while '<END>' in self.incomplete_data:
             full_message, self.incomplete_data = self.incomplete_data.split('<END>', 1)
             if full_message:
-                print(f"[DEBUG] Received message: {full_message[:20]}...")
+                # print(f"[DEBUG] Received message: {full_message[:20]}...")
                 asyncio.create_task(self._process_message(full_message))
                 # reactor.callInThread(self._process_message, full_message)
 
@@ -238,7 +238,7 @@ class SimpleTCPClient(protocol.Protocol):
                 for car in message_body.get("cars", [])
             ]
         }
-        asyncio.create_task(self._store_plate_data(message_body))
+        # asyncio.create_task(self._store_plate_data(message_body))
         asyncio.create_task(self._broadcast_to_socketio("plates_data", socketio_message))
         # reactor.callFromThread(
         #     asyncio.run, self._broadcast_to_socketio("plates_data", socketio_message)
