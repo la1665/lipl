@@ -53,7 +53,7 @@ def main():
     """
     Main entry point for running the FastAPI app.
     """
-    uvicorn.run("main:app_socket", host="0.0.0.0", port=8000, ssl_keyfile="./cert/client.key", ssl_certfile="./cert/client.crt", ssl_ca_certs="./cert/ca.crt")
+    uvicorn.run("main:app_socket", host="0.0.0.0", port=443, ssl_keyfile="./cert/client.key", ssl_certfile="./cert/client.crt", ssl_ca_certs="./cert/ca.crt")
 
 
 if __name__ == "__main__":
