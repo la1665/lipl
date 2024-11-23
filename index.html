@@ -112,7 +112,6 @@
                         .getElementById("main-content")
                         .classList.remove("hidden");
 
-                    console.log("Login successful:", data);
                     connectWebSocket(); // Proceed to open WebSocket after successful login
                 } else {
                     console.log("Login failed:", data.detail);
@@ -122,7 +121,7 @@
 
             // Function to establish WebSocket connection
             function connectWebSocket() {
-                // Open WebSocket connection
+                // Open WebSocket connection using secure protocol
                 socket = io("wss://fastapi-8vlc6b.chbk.app", {
                     path: "/socket.io",
                     transports: ["websocket"],
@@ -134,6 +133,24 @@
 
                 socket.on("plates_data", (data) => updatePlateData(data));
                 socket.on("live", (data) => updateLiveData(data));
+
+                // Handle custom ping and pong events
+                socket.on("ping", (data) => {
+                    console.log("Received ping from server:", data);
+                    socket.emit("ping_pong", { message: "pong" }); // Respond with pong
+                });
+
+                socket.on("pong", (data) => {
+                    console.log("Received pong from server:", data);
+                });
+
+                // Optional: Manually send a ping to the server
+                // For example, after 5 seconds
+                setTimeout(() => {
+                    console.log("Sending ping to server");
+                    socket.emit("ping_pong", { message: "ping" });
+                }, 5000);
+
                 socket.on("disconnect", () =>
                     console.log("Disconnected from Socket.IO server"),
                 );
@@ -189,10 +206,16 @@
             }
 
             function updateLiveData(data) {
-                document.getElementById("live-image").src =
-                    "data:image/png;base64," + data.live_image;
-                document.getElementById("live-gate").innerText =
-                    "Gate: " + data.gate;
+                const liveImage = document.getElementById("live-image");
+                if (liveImage) {
+                    liveImage.src = "data:image/png;base64," + data.live_image;
+                    liveImage.style.display = "block";
+                }
+
+                const liveGate = document.getElementById("live-gate");
+                if (liveGate) {
+                    liveGate.innerText = "Gate: " + (data.gate || "Unknown");
+                }
             }
         </script>
     </body>

@@ -6,8 +6,9 @@ from socketio import AsyncServer
 import time
 from threading import Lock
 
+from http.cookies import SimpleCookie
 
-ALLOWED_ORIGINS = ["https://fastapi-8vlc6b.chbk.app", "https://services.irn8.chabokan.net", "91.236.169.133"]
+ALLOWED_ORIGINS = ["https://fastapi-8vlc6b.chbk.app", "https://services.irn8.chabokan.net", "https://91.236.169.133"]
 sio = AsyncServer(async_mode="asgi", cors_allowed_origins="*")
 app_socket = FastAPI()
 
@@ -168,3 +169,27 @@ async def emit_to_requested_sids(data_type, data):
                 ]
             )
             last_live_emit_time = current_time
+
+@sio.event
+async def ping_pong(sid, data):
+    """Custom ping-pong event to verify connection."""
+    print(f"Received ping from sid {sid}: {data}")
+    await sio.emit('pong', {'message': 'pong'}, to=sid)
+    print(f"Sent pong to sid {sid}")
+
+async def emit_pings():
+    """Emit pings to all connected clients periodically."""
+    while True:
+        await asyncio.sleep(60)  # Send a ping every 60 seconds
+        connected_sids = list(sio.manager.connected.keys())
+        for sid in connected_sids:
+            await sio.emit('ping', {'message': 'ping'}, to=sid)
+            print(f"Sent ping to sid {sid}")
+
+# Attach Socket.IO server to FastAPI app
+sio.attach(app_socket)
+
+# Example endpoint to verify server is running
+@app_socket.get("/")
+async def root():
+    return {"message": "Socket.IO server is running."}
