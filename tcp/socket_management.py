@@ -5,10 +5,17 @@ from typing import Dict, List
 
 logger = logging.getLogger(__name__)
 
+
 # Create a new instance of an ASGI-compatible Socket.IO server
+ALLOW_ORIGINS=[
+        "https://fastapi-8vlc6b.chbk.app",
+        "https://services.irn8.chabokan.net",
+        "https://91.236.169.133"
+    ],
 tcp_sio = socketio.AsyncServer(
     async_mode='asgi',  # Use ASGI mode for FastAPI compatibility
-    cors_allowed_origins="*",  # Allow all origins for CORS; adjust as needed
+    # cors_allowed_origins="*",  # Allow all origins for CORS; adjust as needed
+    cors_allowed_origins=ALLOW_ORIGINS,  # Allow all origins for CORS; adjust as needed
     logger=True,
     engineio_logger=True
 )

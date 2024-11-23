@@ -22,12 +22,12 @@ logger.info("Starting FastAPI application")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    # allow_origins=[
-    #         "https://fastapi-8vlc6b.chbk.app",
-    #         "https://services.irn8.chabokan.net",
-    #         "https://91.236.169.133"
-    #     ],
+    # allow_origins=["*"],
+    allow_origins=[
+            "https://fastapi-8vlc6b.chbk.app",
+            "https://services.irn8.chabokan.net",
+            "https://91.236.169.133"
+        ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
