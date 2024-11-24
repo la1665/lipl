@@ -14,8 +14,8 @@ ALLOW_ORIGINS=[
     ],
 tcp_sio = socketio.AsyncServer(
     async_mode='asgi',  # Use ASGI mode for FastAPI compatibility
-    # cors_allowed_origins="*",  # Allow all origins for CORS; adjust as needed
-    cors_allowed_origins=ALLOW_ORIGINS,  # Allow all origins for CORS; adjust as needed
+    cors_allowed_origins="*",  # Allow all origins for CORS; adjust as needed
+    # cors_allowed_origins=ALLOW_ORIGINS,  # Allow all origins for CORS; adjust as needed
     logger=True,
     engineio_logger=True
 )
