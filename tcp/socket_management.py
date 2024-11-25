@@ -67,14 +67,14 @@ async def subscribe(sid, data):
         asyncio.create_task(tcp_sio.emit('error', {'message': 'camera_id is required'}, to=sid))
 
 
-    await tcp_sio.emit("response", {"message": f"Handling {request_type} for {camera_id}"}, to=sid)
+    asyncio.create_task(tcp_sio.emit("response", {"message": f"Handling {request_type} for {camera_id}"}, to=sid))
     # Update the request map based on the request type and role
-    if request_type == "live" and role == "admin":
+    if request_type == "live":
         request_map["live"].setdefault(sid, set()).add(camera_id)
         logger.info(f"Client {sid} subscribed to live data for camera_id {camera_id}")
         asyncio.create_task(tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "live", "camera_id": camera_id}, to=sid))
 
-    elif request_type == "plates_data" and role == "admin":
+    elif request_type == "plates_data":
         request_map["plates_data"].setdefault(sid, set()).add(camera_id)
         logger.info(f"Client {sid} subscribed to plate data for camera_id {camera_id}")
         asyncio.create_task(tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "plate", "camera_id": camera_id}, to=sid))
