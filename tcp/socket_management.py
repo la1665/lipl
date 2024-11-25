@@ -16,7 +16,7 @@ ALLOWED_ORIGINS = [
 ]
 
 # Initialize Socket.IO server with restricted CORS
-sio = AsyncServer(
+tcp_sio = AsyncServer(
     async_mode="asgi",
     cors_allowed_origins="*"
     # cors_allowed_origins=ALLOWED_ORIGINS
@@ -58,7 +58,7 @@ def is_token_valid(sid):
 #             await sio.disconnect(sid)
 #             break
 
-@sio.event
+@tcp_sio.event
 async def connect(sid, environ):
     """Handle a new client connection."""
     client_ip = environ.get('REMOTE_ADDR', 'Unknown IP')
@@ -108,7 +108,7 @@ async def connect(sid, environ):
     #     print(f"Token validation failed for {sid}: {e}")
     #     return False  # Reject if token is expired or invalid
 
-@sio.event
+@tcp_sio.event
 async def refresh_token(sid, new_token):
     """Handle token refresh to update the session token if valid."""
     try:
@@ -118,10 +118,10 @@ async def refresh_token(sid, new_token):
         print(f"[INFO] Token for session {sid} successfully updated.")
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
         print(f"[ERROR] Invalid token for session {sid}. Disconnecting.")
-        await sio.emit('error', {'message': 'Invalid or expired token.'}, to=sid)
-        await sio.disconnect(sid)
+        await tcp_sio.emit('error', {'message': 'Invalid or expired token.'}, to=sid)
+        await tcp_sio.disconnect(sid)
 
-@sio.event
+@tcp_sio.event
 async def disconnect(sid):
     """Handle client disconnection."""
     session_tokens.pop(sid, None)
@@ -131,12 +131,12 @@ async def disconnect(sid):
     print(f"Client {sid} disconnected and cleaned up.")
 
 
-@sio.event
+@tcp_sio.event
 async def handle_request(sid, data):
     """Handle requests for live or plate data based on permissions."""
     if not is_token_valid(sid):
-        await sio.emit('error', {'message': 'Invalid or expired token'}, to=sid)
-        await sio.disconnect(sid)
+        await tcp_sio.emit('error', {'message': 'Invalid or expired token'}, to=sid)
+        await tcp_sio.disconnect(sid)
         return
 
     role = sid_role_map.get(sid)
@@ -144,7 +144,7 @@ async def handle_request(sid, data):
     cameraID = data.get("cameraID")
 
     if not cameraID:
-        await sio.emit('error', {'message': 'cameraID is required'}, to=sid)
+        await tcp_sio.emit('error', {'message': 'cameraID is required'}, to=sid)
         return
 
     # Update the request map if the role permits access, using sets for multiple cameraIDs per sid
@@ -153,17 +153,17 @@ async def handle_request(sid, data):
         if sid not in request_map["live"]:
             request_map["live"][sid] = set()  # Initialize as set if not present
         request_map["live"][sid].add(cameraID)  # Add the cameraID to the sid's set
-        await sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "live"}, to=sid)
+        await tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "live"}, to=sid)
 
     # elif request_type == "plate" and role in ["admin", "operator"]:
     elif request_type == "plate":
         if sid not in request_map["plates_data"]:
             request_map["plates_data"][sid] = set()  # Initialize as set if not present
         request_map["plates_data"][sid].add(cameraID)  # Add the cameraID to the sid's set
-        await sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "plate"}, to=sid)
+        await tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "plate"}, to=sid)
 
     else:
-        await sio.emit('error', {'message': 'Unauthorized to access this data'}, to=sid)
+        await tcp_sio.emit('error', {'message': 'Unauthorized to access this data'}, to=sid)
 
 async def emit_to_requested_sids(data_type, data):
     """Emit data to all sids that have requested the specified data_type and matching cameraID."""
@@ -174,7 +174,7 @@ async def emit_to_requested_sids(data_type, data):
     if data_type == "plates_data":
         await asyncio.gather(
             *[
-                sio.emit(data_type, data, to=sid)
+                tcp_sio.emit(data_type, data, to=sid)
                 for sid, camera_ids in sids_to_notify.items()
                 if data.get("camera_id") in camera_ids  # Only emit if the data's cameraID matches one in the sid's set
             ]
@@ -185,7 +185,7 @@ async def emit_to_requested_sids(data_type, data):
         if current_time - last_live_emit_time >= LIVE_EMIT_INTERVAL:
             await asyncio.gather(
                 *[
-                    sio.emit(data_type, data, to=sid)
+                    tcp_sio.emit(data_type, data, to=sid)
                     for sid, camera_ids in sids_to_notify.items()
                     if data.get("camera_id") in camera_ids  # Only emit if the data's cameraID matches one in the sid's set
                 ]
