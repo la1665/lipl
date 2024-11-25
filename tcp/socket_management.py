@@ -121,7 +121,7 @@ async def emit_to_requested_sids(event_name, data, camera_id=None):
         if camera_id is None or camera_id in camera_ids:  # Check if the client is subscribed to the cameraID
             try:
                 tasks.append(asyncio.create_task(tcp_sio.emit(event_name, data, to=sid)))
-                # logger.info(f"Emitted {event_name} to SID {sid} for camera_id {camera_id}")
+                logger.info(f"Emitted {event_name} to SID {sid} for camera_id {camera_id}")
             except Exception as e:
                 logger.error(f"Failed to emit {event_name} to SID {sid}: {e}")
     # Execute all emission tasks concurrently

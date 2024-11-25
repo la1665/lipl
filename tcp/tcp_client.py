@@ -6,6 +6,7 @@ import hashlib
 import asyncio
 import socketio
 import dateutil.parser
+import logging
 # from twisted.internet import asyncioreactor
 # asyncioreactor.install(asyncio.get_event_loop())
 from sqlalchemy.exc import SQLAlchemyError
@@ -16,7 +17,12 @@ from db.engine import async_session
 from tcp.socket_management import emit_to_requested_sids
 from settings import settings
 from traffic.model import Vehicle, Traffic
+
 # Load environment variables from .env file
+
+
+logger = logging.getLogger(__name__)
+
 
 # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 client_key_path = os.getenv("CLIENT_KEY_PATH","/app/cert/client.key")
@@ -121,7 +127,11 @@ class SimpleTCPClient(protocol.Protocol):
 
     async def _broadcast_to_socketio(self, event_name, data):
         """Efficiently broadcast a message to all subscribed clients for an event."""
-        await emit_to_requested_sids(event_name, data)
+        try:
+            await emit_to_requested_sids(event_name, data)
+            logger.info(f"[INFO] Emitted event '{event_name}' with data: {data}")
+        except Exception as e:
+            logger.error(f"[ERROR] Failed to emit event '{event_name}': {e}")
 
     # def _handle_plates_data(self, message):
     #     message_body = message["messageBody"]
