@@ -60,29 +60,28 @@ async def subscribe(sid, data):
     Allows clients to subscribe to specific events.
     """
     print(f"Received request from {sid}: {data}")
-    role = sid_role_map.get(sid, "guest")
+    role = sid_role_map.get(sid, "admin")
     request_type = data.get("request_type")
     camera_id = data.get("camera_id")
     if not camera_id:
-        await tcp_sio.emit('error', {'message': 'camera_id is required'}, to=sid)
-        return
+        asyncio.create_task(tcp_sio.emit('error', {'message': 'camera_id is required'}, to=sid))
+
 
     await tcp_sio.emit("response", {"message": f"Handling {request_type} for {camera_id}"}, to=sid)
     # Update the request map based on the request type and role
     if request_type == "live" and role == "admin":
         request_map["live"].setdefault(sid, set()).add(camera_id)
         logger.info(f"Client {sid} subscribed to live data for camera_id {camera_id}")
-        await tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "live", "camera_id": camera_id}, to=sid)
+        asyncio.create_task(tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "live", "camera_id": camera_id}, to=sid))
 
     elif request_type == "plates_data" and role == "admin":
         request_map["plates_data"].setdefault(sid, set()).add(camera_id)
         logger.info(f"Client {sid} subscribed to plate data for camera_id {camera_id}")
-        await tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "plate", "camera_id": camera_id}, to=sid)
+        asyncio.create_task(tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "plate", "camera_id": camera_id}, to=sid))
 
     else:
         logger.warning(f"Client {sid} attempted unauthorized access to {request_type}")
-        await tcp_sio.emit('error', {'message': 'Unauthorized to access this data'}, to=sid)
-
+        asyncio.create_task(tcp_sio.emit('error', {'message': 'Unauthorized to access this data'}, to=sid))
 
 
 
@@ -98,14 +97,14 @@ async def unsubscribe(sid, data):
         if camera_id in request_map[request_type][sid]:
             request_map[request_type][sid].remove(camera_id)
             logger.info(f"Client {sid} unsubscribed from {request_type} data for camera_id {camera_id}")
-            await tcp_sio.emit('request_acknowledged', {"status": "unsubscribed", "data_type": request_type, "camera_id": camera_id}, to=sid)
+            asyncio.create_task(tcp_sio.emit('request_acknowledged', {"status": "unsubscribed", "data_type": request_type, "camera_id": camera_id}, to=sid))
 
         if not request_map[request_type][sid]:  # If no more subscriptions for this sid
             del request_map[request_type][sid]
 
     else:
         logger.warning(f"Client {sid} attempted to unsubscribe from {request_type} without a valid subscription")
-        await tcp_sio.emit('error', {'message': 'You are not subscribed to this data type or camera_id'}, to=sid)
+        asyncio.create_task(tcp_sio.emit('error', {'message': 'You are not subscribed to this data type or camera_id'}, to=sid))
 
 
 async def emit_to_requested_sids(event_name, data, camera_id=None):
@@ -120,7 +119,8 @@ async def emit_to_requested_sids(event_name, data, camera_id=None):
     for sid, camera_ids in request_map[event_name].items():
         if camera_id is None or camera_id in camera_ids:  # Check if the client is subscribed to the cameraID
             try:
-                tasks.append(asyncio.create_task(tcp_sio.emit(event_name, data, to=sid)))
+                asyncio.create_task(tcp_sio.emit(event_name, data, to=sid))
+                # tasks.append(asyncio.create_task(tcp_sio.emit(event_name, data, to=sid)))
                 logger.info(f"Emitted {event_name} to SID {sid} for camera_id {camera_id}")
             except Exception as e:
                 logger.error(f"Failed to emit {event_name} to SID {sid}: {e}")
