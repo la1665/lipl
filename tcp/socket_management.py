@@ -154,6 +154,7 @@ async def handle_request(sid, data):
             request_map["live"][sid] = set()  # Initialize as set if not present
         request_map["live"][sid].add(cameraID)  # Add the cameraID to the sid's set
         await tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "live"}, to=sid)
+        print("subscribed")
 
     # elif request_type == "plate" and role in ["admin", "operator"]:
     elif request_type == "plate":
@@ -161,9 +162,11 @@ async def handle_request(sid, data):
             request_map["plates_data"][sid] = set()  # Initialize as set if not present
         request_map["plates_data"][sid].add(cameraID)  # Add the cameraID to the sid's set
         await tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "plate"}, to=sid)
+        print("subscribed")
 
     else:
         await tcp_sio.emit('error', {'message': 'Unauthorized to access this data'}, to=sid)
+        print("unsubscribed")
 
 async def emit_to_requested_sids(data_type, data):
     """Emit data to all sids that have requested the specified data_type and matching cameraID."""
