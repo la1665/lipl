@@ -25,5 +25,7 @@ COPY . .
 # COPY .cert .
 # EXPOSE 8000
 
-CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]
+CMD ["gunicorn", "-c", "gunicorn.conf.py", "main:app_socket"]
+#CMD ["gunicorn", "-w", "3", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "main:app_socket"]
+#CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]
 # CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile", "/app/cert/client.key", "--ssl-certfile", "/app/cert/client.crt", "--ssl-ca-certs", "/app/cert/ca.crt"]

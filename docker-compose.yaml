@@ -6,22 +6,24 @@ services:
       context: .
     container_name: fastapi_backend
     restart: always
-    command: [
-        "uvicorn",
-        "main:app_socket",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000",
-        "--log-level",
-        "debug",
-        # "--ssl-keyfile",
-        # "/app/cert/client.key",
-        # "--ssl-certfile",
-        # "/app/cert/client.crt",
-        # "--ssl-ca-certs",
-        # "/app/cert/ca.crt",
-      ]
+    #command: [
+    #"uvicorn",
+    #"main:app_socket",
+    #"--host",
+    #"0.0.0.0",
+    #"--port",
+    #"8000",
+    #"--workers",
+    #"3",
+    #"--log-level",
+    #"debug",
+    # "--ssl-keyfile",
+    # "/app/cert/client.key",
+    # "--ssl-certfile",
+    # "/app/cert/client.crt",
+    # "--ssl-ca-certs",
+    # "/app/cert/ca.crt",
+    #]
     ports:
       - "8000:8000"
     depends_on:
@@ -37,7 +39,7 @@ services:
 
   db:
     image: postgres:latest
-    container_name: postgres_db
+    container_name: plate_db
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
