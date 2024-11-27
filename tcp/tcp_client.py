@@ -7,25 +7,18 @@ import asyncio
 import socketio
 import dateutil.parser
 import logging
-# from twisted.internet import asyncioreactor
-# asyncioreactor.install(asyncio.get_event_loop())
 from sqlalchemy.exc import SQLAlchemyError
 from twisted.internet import protocol, reactor, ssl
 from sqlalchemy.future import select
 
 from db.engine import async_session
 from tcp.socket_management import emit_to_requested_sids
-# from tcp.socket_test import enqueue_message
 from settings import settings
 from traffic.model import Vehicle, Traffic
-
-# Load environment variables from .env file
 
 
 logger = logging.getLogger(__name__)
 
-
-# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 client_key_path = os.getenv("CLIENT_KEY_PATH","/app/cert/client.key")
 client_cert_path = os.getenv("CLIENT_CERT_PATH","/app/cert/client.crt")
 ca_cert_path = os.getenv("CA_CERT_PATH","/app/cert/ca.crt")
@@ -34,7 +27,7 @@ class SimpleTCPClient(protocol.Protocol):
     def __init__(self):
         self.auth_message_id = None
         self.incomplete_data = ""
-        self.authenticated = False  # Track authentication status locally
+        self.authenticated = False
 
 
     def connectionMade(self):
@@ -87,9 +80,7 @@ class SimpleTCPClient(protocol.Protocol):
             full_message, self.incomplete_data = self.incomplete_data.split('<END>', 1)
             if full_message:
                 # print(f"[DEBUG] Received message: {full_message[:100]}...")
-                # asyncio.create_task(self._process_message(full_message))
                 asyncio.ensure_future(self._process_message(full_message))
-                # reactor.callInThread(self._process_message, full_message)
 
     async def _process_message(self, message):
         """
@@ -97,10 +88,8 @@ class SimpleTCPClient(protocol.Protocol):
         This runs in a separate thread.
         """
         try:
-            # message = message.rstrip()
             parsed_message = json.loads(message)
             message_type = parsed_message.get("messageType")
-            # print(f"type of the message is: {message_type}")
 
             handlers = {
                 "acknowledge": self._handle_acknowledgment,
@@ -124,44 +113,17 @@ class SimpleTCPClient(protocol.Protocol):
             print("[INFO] Authentication successful.")
             self.authenticated = True
             self.factory.authenticated = True
-            # self.factory.protocol_instance = self
         else:
             print(f"[INFO] Acknowledgment for message: {reply_to} ...")
 
     async def _broadcast_to_socketio(self, event_name, data):
         """Efficiently broadcast a message to all subscribed clients for an event."""
-        # print(" in broadcast ...")
         try:
             await emit_to_requested_sids(event_name, data)
             logger.info(f"[INFO] Emitted event '{event_name}' with data: {data}")
-            # print("send to socket... in broadcast ...")
         except Exception as e:
             logger.error(f"[ERROR] Failed to emit event '{event_name}': {e}")
-            # print("couldn't send to socket... in broadcast ...")
 
-    # def _handle_plates_data(self, message):
-    #     message_body = message["messageBody"]
-    #     socketio_message = {
-    #         "messageType": "plates_data",
-    #         "timestamp": message_body.get("timestamp"),
-    #         "camera_id": message_body.get("camera_id"),
-    #         "full_image": message_body.get("full_image"),
-    #         "cars": [
-    #             {
-    #                 "plate_number": car.get("plate", {}).get("plate", "Unknown"),
-    #                 "plate_image": car.get("plate", {}).get("plate_image", ""),
-    #                 "ocr_accuracy": car.get("ocr_accuracy", "Unknown"),
-    #                 "vision_speed": car.get("vision_speed", 0.0),
-    #                 "vehicle_class": car.get("vehicle_class", {}),
-    #                 "vehicle_type": car.get("vehicle_type", {}),
-    #                 "vehicle_color": car.get("vehicle_color", {})
-    #             }
-    #             for car in message_body.get("cars", [])
-    #         ]
-    #     }
-    #     reactor.callFromThread(
-    #         asyncio.run, self._broadcast_to_socketio("plates_data", socketio_message)
-    #     )
 
     async def _store_plate_data(self, plate_data):
         """
@@ -256,21 +218,13 @@ class SimpleTCPClient(protocol.Protocol):
                 for car in message_body.get("cars", [])
             ]
         }
-        # Queue the message for emission to connected clients
-        # enqueue_message("plates_data", socketio_message)
-        # asyncio.create_task(self._store_plate_data(message_body))
-        # asyncio.create_task(self._broadcast_to_socketio("plates_data", socketio_message))
-        # print(f"plate data to socket is: {socketio_message}")
-        # reactor.callFromThread(
-        #     asyncio.run, self._broadcast_to_socketio("plates_data", socketio_message)
-        # )
         asyncio.ensure_future(self._broadcast_to_socketio("plates_data", socketio_message))
 
     def _handle_command_response(self, message):
         """
         Handles the command response from the server.
         """
-        pass  # Implement as needed
+        pass
 
     def _handle_live_data(self, message):
         message_body = message["messageBody"]
@@ -280,9 +234,7 @@ class SimpleTCPClient(protocol.Protocol):
             "live_image": "sample_live_image",
             "camera_id": message_body.get("camera_id")
         }
-        asyncio.ensure_future(self._broadcast_to_socketio("live_data", live_data))
-        # asyncio.create_task(self._broadcast_to_socketio("live", live_data))
-        # asyncio.ensure_future(self._broadcast_to_socketio("live", live_data))
+        asyncio.ensure_future(self._broadcast_to_socketio("live", live_data))
 
     def _handle_unknown_message(self, message):
         print(f"[WARN] Received unknown message type: {message.get('messageType')}")
@@ -296,7 +248,6 @@ class SimpleTCPClient(protocol.Protocol):
 
     def _create_command_message(self, command_data):
         """Creates and signs a command message with HMAC for integrity."""
-        # hmac_key = os.getenv("HMAC_SECRET_KEY", "").encode()
         hmac_key = settings.HMAC_SECRET_KEY.encode()
         data_str = json.dumps(command_data)
         hmac_signature = hmac.new(hmac_key, data_str.encode(), hashlib.sha256).hexdigest()
@@ -322,16 +273,16 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
         self.authenticated = False
         self.protocol_instance = None
         self.initialDelay = 2
-        self.maxDelay = 10  # Increased max delay for exponential backoff
-        self.factor = 1.5  # Exponential backoff factor
+        self.maxDelay = 10
+        self.factor = 1.5
         self.jitter = 0.1
         self.server_ip = server_ip
         self.port = port
-        self.reconnecting = False  # Add reconnecting flag
+        self.reconnecting = False
 
     def buildProtocol(self, addr):
         self.resetDelay()
-        self.reconnecting = False  # Reset the reconnecting flag on successful connection
+        self.reconnecting = False
         client = SimpleTCPClient()
         client.factory = self
         self.protocol_instance = client
@@ -360,11 +311,7 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
                 context.use_certificate_file(settings.CLIENT_CERT_PATH)
                 context.use_privatekey_file(settings.CLIENT_KEY_PATH)
                 context.load_verify_locations(settings.CA_CERT_PATH)
-                # context.use_certificate_file(settings.CLIENT_CERT_PATH)
-                # context.use_privatekey_file(settings.CLIENT_KEY_PATH)
-                # context.load_verify_locations(settings.CA_CERT_PATH)
                 context.set_verify(ssl.SSL.VERIFY_PEER, lambda conn, cert, errno, depth, ok: ok)
-                # context.set_verify(ssl.SSL.VERIFY_NONE, lambda conn, cert, errno, depth, ok: ok)
                 print("Using ssl context completed ...")
                 return context
 
@@ -374,9 +321,8 @@ class ReconnectingTCPClientFactory(protocol.ReconnectingClientFactory):
 def connect_to_server(server_ip, port, auth_token):
     factory = ReconnectingTCPClientFactory(server_ip, port, auth_token)
     print(f"factory created ... {factory}")
-    # reactor.connectTCP(server_ip, port, factory)
     print(f"Connecting to the factory: {factory}...")
-    factory._attempt_reconnect()  # Start initial connection attempt
+    factory._attempt_reconnect()
     return factory
 
 def send_command_to_server(factory, command_data):
