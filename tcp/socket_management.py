@@ -1,196 +1,129 @@
-# tcp/socket_management.py
-
-import os
-import jwt
+import socketio
+import logging
 import asyncio
-from socketio import AsyncServer
-import time
-from threading import Lock
-from http.cookies import SimpleCookie
+from typing import Dict, List
 
-# Define Allowed Origins
-ALLOWED_ORIGINS = [
-    "https://fastapi-8vlc6b.chbk.app",
-    "https://services.irn8.chabokan.net",
-    "https://91.236.169.133"
-]
+logger = logging.getLogger(__name__)
 
-# Initialize Socket.IO server with restricted CORS
-tcp_sio = AsyncServer(
-    async_mode="asgi",
-    cors_allowed_origins="*"
-    # cors_allowed_origins=ALLOWED_ORIGINS
+
+# Create a new instance of an ASGI-compatible Socket.IO server
+ALLOW_ORIGINS=[
+        "https://fastapi-8vlc6b.chbk.app",
+        "https://services.irn8.chabokan.net",
+        "https://91.236.169.133"
+    ],
+tcp_sio = socketio.AsyncServer(
+    async_mode='asgi',  # Use ASGI mode for FastAPI compatibility
+    cors_allowed_origins="*",  # Allow all origins for CORS; adjust as needed
+    # cors_allowed_origins=ALLOW_ORIGINS,  # Allow all origins for CORS; adjust as needed
+    logger=True,
+    engineio_logger=True
 )
 
-# Session and Role Management
-session_tokens = {}
-sid_role_map = {}
-SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key")  # Ensure to set this in your environment variables
-TOKEN_CHECK_INTERVAL = 300  # 5 minutes
-
-# Request and Emit Settings
+# Maps to manage client subscriptions
 request_map = {
-    "live": {},       # Dictionary to store {sid: set(cameraIDs)} for "live" requests
-    "plates_data": {} # Dictionary to store {sid: set(cameraIDs)} for "plates_data" requests
+    "live": {},  # Format: {"sid": {cameraID1, cameraID2, ...}}
+    "plates_data": {}  # Format: {"sid": {cameraID1, cameraID2, ...}}
 }
-last_live_emit_time = 0
-LIVE_EMIT_INTERVAL = 1  # 1 second
-emit_lock = Lock()
 
-def is_token_valid(sid):
-    """Check if the token for a given sid is valid and unexpired."""
-    token = session_tokens.get(sid)
-    if not token:
-        return False
-    # try:
-        # jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-    return True
-    # except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-    #     return False
+sid_role_map = {}  # Maps SID to roles (e.g., {"sid1": "admin", "sid2": "operator"})
 
-# async def conditional_token_check(sid):
-#     """Periodically check if the token is still valid."""
-#     while True:
-#         await asyncio.sleep(TOKEN_CHECK_INTERVAL)
-#         if not sio.manager.is_connected(sid):
-#             break
-#         if not is_token_valid(sid):
-#             await sio.disconnect(sid)
-#             break
 
 @tcp_sio.event
 async def connect(sid, environ):
-    """Handle a new client connection."""
-    client_ip = environ.get('REMOTE_ADDR', 'Unknown IP')
-    auth_token = environ.get("HTTP_COOKIE", "")
-    print(f"Raw cookie header from {sid}: {auth_token}")
+    """
+    Event triggered when a client connects to the WebSocket.
+    """
+    print(f"New client connected: {sid}")
+    asyncio.create_task(tcp_sio.emit("connection_ack", {"message": "Connected"}, to=sid))
+    logger.info(f"Client connected: {sid}")
+    request_map["live"][sid] = set()
+    request_map["plates_data"][sid] = set()
+    return True
 
-    # Log the client IP for debugging
-    print(f"Client IP for {sid}: {client_ip}")
-
-    # Parse cookies to extract the auth_token
-    cookie = SimpleCookie()
-    cookie.load(auth_token)
-    # auth_token_value = cookie.get("auth_token").value if "auth_token" in cookie else None
-    auth_token_value = "test_1234"
-
-    print(f"Extracted auth_token for {sid}: {auth_token_value}")
-    # if auth_token_value is None:
-    #     print(f"Invalid or expired token for {sid}")
-    #     return False  # Reject connection if token is invalid or expired
-
-    # try:
-        # Decode and validate the auth_token to get the user role
-    print(f"Token received for validation from {sid}: {auth_token_value}")
-
-        # decoded_token = jwt.decode(auth_token_value, SECRET_KEY, algorithms=["HS256"])
-        # print(f"Decoded token for {sid}: {decoded_token}")
-    print(f"Decoded token for {sid}: {auth_token_value}")
-        # role = decoded_token.get("role", "viewer")
-
-        # Store session and role mappings
-    session_tokens[sid] = auth_token_value
-        # sid_role_map[sid] = role
-
-        # Start periodic token check for this sid
-        # asyncio.create_task(conditional_token_check(sid))
-
-        # print(f"Connection accepted for {sid} with role: {role}")
-    print(f"Connection accepted for {sid} with role: ADMIN")
-
-        # Start the ping emitter task if not already running
-        # if not hasattr(sio, 'ping_task'):
-            # sio.ping_task = asyncio.create_task(emit_pings())
-
-    return True  # Allow connection
-
-    # except (jwt.ExpiredSignatureError, jwt.InvalidTokenError) as e:
-    #     print(f"Token validation failed for {sid}: {e}")
-    #     return False  # Reject if token is expired or invalid
-
-@tcp_sio.event
-async def refresh_token(sid, new_token):
-    """Handle token refresh to update the session token if valid."""
-    try:
-        # Validate the new token
-        decoded_token = jwt.decode(new_token, SECRET_KEY, algorithms=["HS256"])
-        session_tokens[sid] = new_token  # Update token if valid
-        print(f"[INFO] Token for session {sid} successfully updated.")
-    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError):
-        print(f"[ERROR] Invalid token for session {sid}. Disconnecting.")
-        await tcp_sio.emit('error', {'message': 'Invalid or expired token.'}, to=sid)
-        await tcp_sio.disconnect(sid)
 
 @tcp_sio.event
 async def disconnect(sid):
-    """Handle client disconnection."""
-    session_tokens.pop(sid, None)
+    """
+    Event triggered when a client disconnects from the WebSocket.
+    """
+    logger.info(f"Client disconnected: {sid}")
+    # Remove all subscriptions and role mappings for the client
     sid_role_map.pop(sid, None)
-    for data_type in request_map:
-        request_map[data_type].pop(sid, None)
-    print(f"Client {sid} disconnected and cleaned up.")
+    request_map["live"].pop(sid, None)
+    request_map["plates_data"].pop(sid, None)
 
 
 @tcp_sio.event
-async def handle_request(sid, data):
-    """Handle requests for live or plate data based on permissions."""
-    if not is_token_valid(sid):
-        await tcp_sio.emit('error', {'message': 'Invalid or expired token'}, to=sid)
-        await tcp_sio.disconnect(sid)
-        return
-
-    role = sid_role_map.get(sid)
+async def subscribe(sid, data):
+    """
+    Allows clients to subscribe to specific events.
+    """
+    print(f"Received request from {sid}: {data}")
+    role = sid_role_map.get(sid, "admin")
     request_type = data.get("request_type")
-    cameraID = data.get("cameraID")
+    camera_id = data.get("camera_id")
+    if not camera_id:
+        asyncio.create_task(tcp_sio.emit('error', {'message': 'camera_id is required'}, to=sid))
 
-    if not cameraID:
-        await tcp_sio.emit('error', {'message': 'cameraID is required'}, to=sid)
-        return
 
-    # Update the request map if the role permits access, using sets for multiple cameraIDs per sid
-    # if request_type == "live" and role == "admin":
+    asyncio.create_task(tcp_sio.emit("response", {"message": f"Handling {request_type} for {camera_id}"}, to=sid))
+    # Update the request map based on the request type and role
     if request_type == "live":
-        if sid not in request_map["live"]:
-            request_map["live"][sid] = set()  # Initialize as set if not present
-        request_map["live"][sid].add(cameraID)  # Add the cameraID to the sid's set
-        await tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "live"}, to=sid)
-        print("subscribed")
+        request_map["live"].setdefault(sid, set()).add(camera_id)
+        logger.info(f"Client {sid} subscribed to live data for camera_id {camera_id}")
+        asyncio.create_task(tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "live", "camera_id": camera_id}, to=sid))
 
-    # elif request_type == "plate" and role in ["admin", "operator"]:
-    elif request_type == "plate":
-        if sid not in request_map["plates_data"]:
-            request_map["plates_data"][sid] = set()  # Initialize as set if not present
-        request_map["plates_data"][sid].add(cameraID)  # Add the cameraID to the sid's set
-        await tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "plate"}, to=sid)
-        print("subscribed")
+    elif request_type == "plates_data":
+        request_map["plates_data"].setdefault(sid, set()).add(camera_id)
+        logger.info(f"Client {sid} subscribed to plate data for camera_id {camera_id}")
+        asyncio.create_task(tcp_sio.emit('request_acknowledged', {"status": "subscribed", "data_type": "plate", "camera_id": camera_id}, to=sid))
 
     else:
-        await tcp_sio.emit('error', {'message': 'Unauthorized to access this data'}, to=sid)
-        print("unsubscribed")
+        logger.warning(f"Client {sid} attempted unauthorized access to {request_type}")
+        asyncio.create_task(tcp_sio.emit('error', {'message': 'Unauthorized to access this data'}, to=sid))
 
-async def emit_to_requested_sids(data_type, data):
-    """Emit data to all sids that have requested the specified data_type and matching cameraID."""
-    global last_live_emit_time
-    sids_to_notify = request_map.get(data_type, {})
 
-    # Filter by cameraID in data
-    if data_type == "plates_data":
-        await asyncio.gather(
-            *[
-                tcp_sio.emit(data_type, data, to=sid)
-                for sid, camera_ids in sids_to_notify.items()
-                if data.get("camera_id") in camera_ids  # Only emit if the data's cameraID matches one in the sid's set
-            ]
-        )
 
-    elif data_type == "live":
-        current_time = time.time()
-        if current_time - last_live_emit_time >= LIVE_EMIT_INTERVAL:
-            await asyncio.gather(
-                *[
-                    tcp_sio.emit(data_type, data, to=sid)
-                    for sid, camera_ids in sids_to_notify.items()
-                    if data.get("camera_id") in camera_ids  # Only emit if the data's cameraID matches one in the sid's set
-                ]
-            )
-            last_live_emit_time = current_time
+@tcp_sio.event
+async def unsubscribe(sid, data):
+    """
+    Allows clients to unsubscribe from specific events.
+    """
+    request_type = data.get("request_type")
+    camera_id = data.get("camera_id")
+
+    if request_type in request_map and sid in request_map[request_type]:
+        if camera_id in request_map[request_type][sid]:
+            request_map[request_type][sid].remove(camera_id)
+            logger.info(f"Client {sid} unsubscribed from {request_type} data for camera_id {camera_id}")
+            asyncio.create_task(tcp_sio.emit('request_acknowledged', {"status": "unsubscribed", "data_type": request_type, "camera_id": camera_id}, to=sid))
+
+        if not request_map[request_type][sid]:  # If no more subscriptions for this sid
+            del request_map[request_type][sid]
+
+    else:
+        logger.warning(f"Client {sid} attempted to unsubscribe from {request_type} without a valid subscription")
+        asyncio.create_task(tcp_sio.emit('error', {'message': 'You are not subscribed to this data type or camera_id'}, to=sid))
+
+
+async def emit_to_requested_sids(event_name, data, camera_id=None):
+    """
+    Emits an event with data to all clients subscribed to the event.
+    """
+    if event_name not in request_map:
+        logger.error(f"Invalid event name: {event_name}")
+        return
+
+    tasks = []
+    for sid, camera_ids in request_map[event_name].items():
+        if camera_id is None or camera_id in camera_ids:  # Check if the client is subscribed to the cameraID
+            try:
+                asyncio.create_task(tcp_sio.emit(event_name, data, to=sid))
+                # tasks.append(asyncio.create_task(tcp_sio.emit(event_name, data, to=sid)))
+                logger.info(f"Emitted {event_name} to SID {sid} for camera_id {camera_id}")
+            except Exception as e:
+                logger.error(f"Failed to emit {event_name} to SID {sid}: {e}")
+    # Execute all emission tasks concurrently
+    await asyncio.gather(*tasks, return_exceptions=True)
+    logger.info(f"Emitted {event_name} to all subscribed clients")

@@ -6,24 +6,24 @@ services:
       context: .
     container_name: fastapi_backend
     restart: always
-    #command: [
-    #"uvicorn",
-    #"main:app_socket",
-    #"--host",
-    #"0.0.0.0",
-    #"--port",
-    #"8000",
-    #"--workers",
-    #"3",
-    #"--log-level",
-    #"debug",
+    command: [
+      "uvicorn",
+      "main:app_socket",
+      "--host",
+      "0.0.0.0",
+      "--port",
+      "8000",
+      "--log-level",
+      "debug",
+      # "--workers",
+      # "3",
     # "--ssl-keyfile",
     # "/app/cert/client.key",
     # "--ssl-certfile",
     # "/app/cert/client.crt",
     # "--ssl-ca-certs",
     # "/app/cert/ca.crt",
-    #]
+    ]
     ports:
       - "8000:8000"
     depends_on:

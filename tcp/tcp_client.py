@@ -15,6 +15,7 @@ from sqlalchemy.future import select
 
 from db.engine import async_session
 from tcp.socket_management import emit_to_requested_sids
+# from tcp.socket_test import enqueue_message
 from settings import settings
 from traffic.model import Vehicle, Traffic
 
@@ -85,8 +86,9 @@ class SimpleTCPClient(protocol.Protocol):
         while '<END>' in self.incomplete_data:
             full_message, self.incomplete_data = self.incomplete_data.split('<END>', 1)
             if full_message:
-                # print(f"[DEBUG] Received message: {full_message[:20]}...")
-                asyncio.create_task(self._process_message(full_message))
+                # print(f"[DEBUG] Received message: {full_message[:100]}...")
+                # asyncio.create_task(self._process_message(full_message))
+                asyncio.ensure_future(self._process_message(full_message))
                 # reactor.callInThread(self._process_message, full_message)
 
     async def _process_message(self, message):
@@ -98,6 +100,7 @@ class SimpleTCPClient(protocol.Protocol):
             # message = message.rstrip()
             parsed_message = json.loads(message)
             message_type = parsed_message.get("messageType")
+            # print(f"type of the message is: {message_type}")
 
             handlers = {
                 "acknowledge": self._handle_acknowledgment,
@@ -127,11 +130,14 @@ class SimpleTCPClient(protocol.Protocol):
 
     async def _broadcast_to_socketio(self, event_name, data):
         """Efficiently broadcast a message to all subscribed clients for an event."""
+        # print(" in broadcast ...")
         try:
             await emit_to_requested_sids(event_name, data)
             logger.info(f"[INFO] Emitted event '{event_name}' with data: {data}")
+            # print("send to socket... in broadcast ...")
         except Exception as e:
             logger.error(f"[ERROR] Failed to emit event '{event_name}': {e}")
+            # print("couldn't send to socket... in broadcast ...")
 
     # def _handle_plates_data(self, message):
     #     message_body = message["messageBody"]
@@ -234,11 +240,13 @@ class SimpleTCPClient(protocol.Protocol):
             "messageType": "plates_data",
             "timestamp": message_body.get("timestamp"),
             "camera_id": message_body.get("camera_id"),
-            "full_image": message_body.get("full_image"),
+            # "full_image": message_body.get("full_image"),
+            "full_image": "sample_full_image",
             "cars": [
                 {
                     "plate_number": car.get("plate", {}).get("plate", "Unknown"),
-                    "plate_image": car.get("plate", {}).get("plate_image", ""),
+                    # "plate_image": car.get("plate", {}).get("plate_image", ""),
+                    "plate_image": "sample_plate_image",
                     "ocr_accuracy": car.get("ocr_accuracy", "Unknown"),
                     "vision_speed": car.get("vision_speed", 0.0),
                     "vehicle_class": car.get("vehicle_class", {}),
@@ -248,11 +256,15 @@ class SimpleTCPClient(protocol.Protocol):
                 for car in message_body.get("cars", [])
             ]
         }
+        # Queue the message for emission to connected clients
+        # enqueue_message("plates_data", socketio_message)
         # asyncio.create_task(self._store_plate_data(message_body))
-        asyncio.create_task(self._broadcast_to_socketio("plates_data", socketio_message))
+        # asyncio.create_task(self._broadcast_to_socketio("plates_data", socketio_message))
+        # print(f"plate data to socket is: {socketio_message}")
         # reactor.callFromThread(
         #     asyncio.run, self._broadcast_to_socketio("plates_data", socketio_message)
         # )
+        asyncio.ensure_future(self._broadcast_to_socketio("plates_data", socketio_message))
 
     def _handle_command_response(self, message):
         """
@@ -264,10 +276,12 @@ class SimpleTCPClient(protocol.Protocol):
         message_body = message["messageBody"]
         live_data = {
             "messageType": "live",
-            "live_image": message_body.get("live_image"),
+            # "live_image": message_body.get("live_image"),
+            "live_image": "sample_live_image",
             "camera_id": message_body.get("camera_id")
         }
-        asyncio.create_task(self._broadcast_to_socketio("live", live_data))
+        asyncio.ensure_future(self._broadcast_to_socketio("live_data", live_data))
+        # asyncio.create_task(self._broadcast_to_socketio("live", live_data))
         # asyncio.ensure_future(self._broadcast_to_socketio("live", live_data))
 
     def _handle_unknown_message(self, message):

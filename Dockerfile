@@ -22,10 +22,12 @@ RUN pip install --upgrade pip
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+# Create the logs directory with appropriate permissions
+RUN mkdir -p logs && chmod 755 logs
 # COPY .cert .
 # EXPOSE 8000
 
-CMD ["gunicorn", "-c", "gunicorn.conf.py", "main:app_socket"]
+# CMD ["gunicorn", "-c", "gunicorn.conf.py", "main:app_socket"]
 #CMD ["gunicorn", "-w", "3", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "main:app_socket"]
-#CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]
+CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--log-level", "debug"]
 # CMD ["uvicorn", "main:app_socket", "--host", "0.0.0.0", "--port", "8000", "--ssl-keyfile", "/app/cert/client.key", "--ssl-certfile", "/app/cert/client.crt", "--ssl-ca-certs", "/app/cert/ca.crt"]
