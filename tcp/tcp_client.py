@@ -202,13 +202,13 @@ class SimpleTCPClient(protocol.Protocol):
             "messageType": "plates_data",
             "timestamp": message_body.get("timestamp"),
             "camera_id": message_body.get("camera_id"),
-            # "full_image": message_body.get("full_image"),
-            "full_image": "sample_full_image",
+            "full_image": message_body.get("full_image"),
+            # "full_image": "sample_full_image",
             "cars": [
                 {
                     "plate_number": car.get("plate", {}).get("plate", "Unknown"),
-                    # "plate_image": car.get("plate", {}).get("plate_image", ""),
-                    "plate_image": "sample_plate_image",
+                    "plate_image": car.get("plate", {}).get("plate_image", ""),
+                    # "plate_image": "sample_plate_image",
                     "ocr_accuracy": car.get("ocr_accuracy", "Unknown"),
                     "vision_speed": car.get("vision_speed", 0.0),
                     "vehicle_class": car.get("vehicle_class", {}),
