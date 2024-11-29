@@ -79,7 +79,7 @@ class SimpleTCPClient(protocol.Protocol):
         while '<END>' in self.incomplete_data:
             full_message, self.incomplete_data = self.incomplete_data.split('<END>', 1)
             if full_message:
-                print(f"[DEBUG] Received message: {full_message[:100]}...")
+                # print(f"[DEBUG] Received message: {full_message[:100]}...")
                 asyncio.ensure_future(self._process_message(full_message))
 
     async def _process_message(self, message):
@@ -218,7 +218,7 @@ class SimpleTCPClient(protocol.Protocol):
                 for car in message_body.get("cars", [])
             ]
         }
-        print(f"{socketio_message}")
+        # print(f"{socketio_message}")
         asyncio.ensure_future(self._broadcast_to_socketio("plates_data", socketio_message))
 
     def _handle_command_response(self, message):
