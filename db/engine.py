@@ -13,7 +13,7 @@ DATABASE_URL = (
     f"{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
 )
 
-engine: AsyncEngine = create_async_engine(DATABASE_URL, echo=True, future=True)
+engine: AsyncEngine = create_async_engine(DATABASE_URL, echo=True, pool_recycle=3600, future=True, pool_size=10, max_overflow=20)
 async_session = async_sessionmaker(
     bind=engine,
     # autocommit=False,
